@@ -1,4 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../features/splash/screens/splash_screen.dart';
+import '../../features/onboarding/screens/onboarding_screen.dart';
+import '../../features/home/screens/home_screen.dart';
+import '../../features/wallet/screens/wallet_name_screen.dart';
+import '../../features/wallet/viewmodels/create_wallet_viewmodel.dart';
+import '../../features/sms_integration/screens/sms_terms_screen.dart';
+import '../../features/sms_integration/screens/sms_loading_screen.dart';
+import '../../features/sms_integration/viewmodels/sms_integration_viewmodel.dart';
 
 /// App route names
 class AppRoutes {
@@ -7,6 +16,10 @@ class AppRoutes {
   // Splash & Onboarding
   static const String splash = '/';
   static const String onboarding = '/onboarding';
+
+  // SMS Integration (Android)
+  static const String smsTerms = '/sms/terms';
+  static const String smsLoading = '/sms/loading';
 
   // Authentication
   static const String createPin = '/auth/create-pin';
@@ -55,13 +68,13 @@ class RouteGenerator {
     switch (settings.name) {
       case AppRoutes.splash:
         return MaterialPageRoute(
-          builder: (_) => const Placeholder(), // SplashScreen(),
+          builder: (_) => const SplashScreen(),
           settings: settings,
         );
 
       case AppRoutes.onboarding:
         return MaterialPageRoute(
-          builder: (_) => const Placeholder(), // OnboardingScreen(),
+          builder: (_) => const OnboardingScreen(),
           settings: settings,
         );
 
@@ -73,7 +86,42 @@ class RouteGenerator {
 
       case AppRoutes.home:
         return MaterialPageRoute(
-          builder: (_) => const Placeholder(), // HomeScreen(),
+          builder: (_) => const HomeScreen(),
+          settings: settings,
+        );
+
+      case AppRoutes.createWallet:
+        return MaterialPageRoute(
+          builder: (_) => ChangeNotifierProvider(
+            create: (_) => CreateWalletViewModel(),
+            child: const WalletNameScreen(),
+          ),
+          settings: settings,
+        );
+
+      case AppRoutes.smsTerms:
+        return MaterialPageRoute(
+          builder: (_) => ChangeNotifierProvider(
+            create: (_) => SmsIntegrationViewModel(),
+            child: const SmsTermsScreen(),
+          ),
+          settings: settings,
+        );
+
+      case AppRoutes.smsLoading:
+        // Extract the viewModel from arguments if passed
+        final viewModel = settings.arguments as SmsIntegrationViewModel?;
+        
+        return MaterialPageRoute(
+          builder: (_) => viewModel != null
+              ? ChangeNotifierProvider.value(
+                  value: viewModel,
+                  child: const SmsLoadingScreen(),
+                )
+              : ChangeNotifierProvider(
+                  create: (_) => SmsIntegrationViewModel(),
+                  child: const SmsLoadingScreen(),
+                ),
           settings: settings,
         );
 

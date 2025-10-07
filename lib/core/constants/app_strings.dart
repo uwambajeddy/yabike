@@ -35,6 +35,8 @@ class AppStrings {
   // Common Actions
   static const String continueText = 'Continue';
   static const String skip = 'Skip';
+  static const String next = 'Next';
+  static const String getStarted = 'Start tracking your money!';
   static const String cancel = 'Cancel';
   static const String save = 'Save';
   static const String delete = 'Delete';

@@ -12,7 +12,18 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(AppStrings.homeTitle),
+        title: Row(
+          children: [
+            // App logo
+            Image.asset(
+              'assets/images/logo.png',
+              height: 32,
+              width: 32,
+            ),
+            const SizedBox(width: 12),
+            const Text(AppStrings.homeTitle),
+          ],
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.notifications_outlined),
