@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_assets.dart';
 import '../../../core/constants/app_spacing.dart';
+import '../../../core/routes/app_routes.dart';
 
 /// Splash screen displayed on app launch
 class SplashScreen extends StatefulWidget {
@@ -20,7 +22,20 @@ class _SplashScreenState extends State<SplashScreen> {
 
   Future<void> _navigateToNext() async {
     await Future.delayed(const Duration(seconds: 2));
-    // TODO: Navigate to onboarding or home based on first launch
+    
+    if (!mounted) return;
+    
+    // Check if first launch
+    final prefs = await SharedPreferences.getInstance();
+    final hasSeenOnboarding = prefs.getBool('hasSeenOnboarding') ?? false;
+    
+    if (hasSeenOnboarding) {
+      // Navigate to home or authentication based on auth status
+      Navigator.of(context).pushReplacementNamed(AppRoutes.home);
+    } else {
+      // Navigate to onboarding
+      Navigator.of(context).pushReplacementNamed(AppRoutes.onboarding);
+    }
   }
 
   @override

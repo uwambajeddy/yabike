@@ -1,5 +1,12 @@
 import 'package:uuid/uuid.dart';
 
+/// Supported wallet categories within the app.
+enum WalletType {
+  cash,
+  bank,
+  momo,
+}
+
 /// Wallet data model
 class Wallet {
   final String id;

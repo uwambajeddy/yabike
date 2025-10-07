@@ -1,6 +1,6 @@
 {
-    "name": "yabike",
-    "short_name": "yabike",
+    "name": "Yabike",
+    "short_name": "Yabike",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
