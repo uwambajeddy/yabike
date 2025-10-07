@@ -159,14 +159,14 @@ class AppThemes {
     ),
 
     // Card Theme
-    cardTheme: CardTheme(
+    cardTheme: CardThemeData(
       elevation: 2,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
       ),
       color: AppColors.surface,
       shadowColor: AppColors.blackQuinary.withOpacity(0.1),
-    ) as CardThemeData,
+    ),
 
     // Input Decoration Theme
     inputDecorationTheme: InputDecorationTheme(
@@ -407,14 +407,14 @@ class AppThemes {
     ),
 
     // Card Theme
-    cardTheme: CardTheme(
+    cardTheme: CardThemeData(
       elevation: 2,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
       ),
       color: AppColors.surfaceDark,
       shadowColor: AppColors.blackQuinary.withOpacity(0.3),
-    ) as CardThemeData,
+    ),
 
     // Input Decoration Theme
     inputDecorationTheme: InputDecorationTheme(
