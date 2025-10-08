@@ -17,29 +17,69 @@ class _SmsLoadingScreenState extends State<SmsLoadingScreen> {
   void initState() {
     super.initState();
     
-    // Listen to state changes
+    // Start SMS scan and listen to state changes
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final viewModel = context.read<SmsIntegrationViewModel>();
       
-      // Listen for completion
+      debugPrint('🔍 Loading Screen - Initial state: ${viewModel.state}');
+      
+      // Check if already completed
+      if (viewModel.state == SmsIntegrationState.completed) {
+        debugPrint('✅ Already completed - navigating immediately');
+        _navigateToHome();
+        return;
+      } else if (viewModel.state == SmsIntegrationState.error) {
+        debugPrint('❌ Already in error state');
+        _showErrorDialog(viewModel.errorMessage ?? 'An error occurred');
+        return;
+      }
+      
+      // Add listener FIRST before starting scan
+      debugPrint('📡 Adding listener for state changes');
       viewModel.addListener(_onStateChanged);
+      
+      // Then start scan if needed
+      if (viewModel.state == SmsIntegrationState.permissionGranted) {
+        debugPrint('🚀 Starting SMS scan...');
+        viewModel.scanAndImportSms();
+      }
     });
   }
 
   void _onStateChanged() {
     final viewModel = context.read<SmsIntegrationViewModel>();
     
+    // Only log for terminal states to reduce noise
     if (viewModel.state == SmsIntegrationState.completed) {
-      // Navigate to home screen
-      if (mounted) {
-        Navigator.pushReplacementNamed(context, AppRoutes.home);
-      }
+      debugPrint('🔔 SMS Loading Screen - Listener fired! State: ${viewModel.state}');
+      debugPrint('🎉 STATE IS COMPLETED - STARTING NAVIGATION');
+      // Remove listener before navigating
+      viewModel.removeListener(_onStateChanged);
+      _navigateToHome();
     } else if (viewModel.state == SmsIntegrationState.error) {
+      debugPrint('🔔 SMS Loading Screen - Listener fired! State: ${viewModel.state}');
+      debugPrint('❌ STATE IS ERROR');
+      // Remove listener before showing error
+      viewModel.removeListener(_onStateChanged);
+      
       // Show error dialog
       if (mounted) {
         _showErrorDialog(viewModel.errorMessage ?? 'An error occurred');
       }
     }
+  }
+
+  void _navigateToHome() {
+    if (!mounted) return;
+    
+    debugPrint('SMS Loading Screen - Navigating to home screen immediately');
+    
+    // Navigate immediately to prevent widget disposal issues
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, AppRoutes.home);
+      }
+    });
   }
 
   void _showErrorDialog(String message) {
@@ -68,6 +108,16 @@ class _SmsLoadingScreenState extends State<SmsLoadingScreen> {
       body: SafeArea(
         child: Consumer<SmsIntegrationViewModel>(
           builder: (context, viewModel, child) {
+            // Check for completion in build method as a backup
+            if (viewModel.state == SmsIntegrationState.completed) {
+              debugPrint('🎯 Build detected completed state - scheduling navigation');
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) {
+                  _navigateToHome();
+                }
+              });
+            }
+            
             return Padding(
               padding: const EdgeInsets.all(AppSpacing.xl),
               child: Column(
@@ -224,8 +274,16 @@ class _SmsLoadingScreenState extends State<SmsLoadingScreen> {
 
   @override
   void dispose() {
-    final viewModel = context.read<SmsIntegrationViewModel>();
-    viewModel.removeListener(_onStateChanged);
+    // Safely remove listener but DON'T dispose the ViewModel
+    // The ViewModel is owned by the Provider and will be disposed when appropriate
+    try {
+      final viewModel = context.read<SmsIntegrationViewModel>();
+      viewModel.removeListener(_onStateChanged);
+      debugPrint('SMS Loading Screen - Listener removed in dispose');
+    } catch (e) {
+      debugPrint('SMS Loading Screen - Error removing listener: $e');
+    }
+    // Don't call super.dispose() on the ViewModel - let Provider handle it
     super.dispose();
   }
 }

@@ -50,7 +50,7 @@ class AppStrings {
   static const String no = 'No';
 
   // Home
-  static const String homeTitle = 'Dashboard';
+  static const String homeTitle = 'Yabike';
   static const String totalBalance = 'Total Balance';
   static const String recentTransactions = 'Recent Transactions';
   static const String seeAll = 'See All';
