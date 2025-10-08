@@ -8,18 +8,16 @@ void main() async {
   // Initialize Hive
   await Hive.initFlutter();
 
-  // TODO: Register Hive adapters for models
-  // Hive.registerAdapter(UserAdapter());
+  // TODO: Register Hive adapters for models (will be generated)
   // Hive.registerAdapter(WalletAdapter());
   // Hive.registerAdapter(TransactionAdapter());
   // Hive.registerAdapter(BudgetAdapter());
 
-  // TODO: Open Hive boxes
-  // await Hive.openBox('users');
-  // await Hive.openBox('wallets');
-  // await Hive.openBox('transactions');
-  // await Hive.openBox('budgets');
-  // await Hive.openBox('settings');
+  // Open Hive boxes (using dynamic for now, will add type adapters later)
+  await Hive.openBox('wallets');
+  await Hive.openBox('transactions');
+  await Hive.openBox('budgets');
+  await Hive.openBox('settings');
 
   runApp(const YaBikeApp());
 }

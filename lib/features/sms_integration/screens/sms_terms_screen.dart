@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
+import '../../../core/routes/app_routes.dart';
 import '../viewmodels/sms_integration_viewmodel.dart';
 import 'package:provider/provider.dart';
 
@@ -15,8 +16,51 @@ class _SmsTermsScreenState extends State<SmsTermsScreen> {
   bool _hasAccepted = false;
 
   @override
+  void initState() {
+    super.initState();
+    // Listen for completion and navigate to home
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final viewModel = context.read<SmsIntegrationViewModel>();
+      viewModel.addListener(_onStateChanged);
+    });
+  }
+
+  void _onStateChanged() {
+    final viewModel = context.read<SmsIntegrationViewModel>();
+    
+    if (viewModel.state == SmsIntegrationState.completed) {
+      debugPrint('✅ SMS import completed - navigating to home');
+      viewModel.removeListener(_onStateChanged);
+      Navigator.pushReplacementNamed(context, AppRoutes.home);
+    } else if (viewModel.state == SmsIntegrationState.error) {
+      debugPrint('❌ SMS import error: ${viewModel.errorMessage}');
+      // Don't navigate, just show error in the UI
+    }
+  }
+
+  @override
+  void dispose() {
+    try {
+      final viewModel = context.read<SmsIntegrationViewModel>();
+      viewModel.removeListener(_onStateChanged);
+    } catch (e) {
+      // Ignore if already disposed
+    }
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return Consumer<SmsIntegrationViewModel>(
+      builder: (context, viewModel, child) {
+        // Show loading overlay when scanning/processing
+        final isLoading = viewModel.state == SmsIntegrationState.scanning ||
+            viewModel.state == SmsIntegrationState.parsing ||
+            viewModel.state == SmsIntegrationState.creatingWallets;
+
+        return Stack(
+          children: [
+            Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -152,7 +196,7 @@ class _SmsTermsScreenState extends State<SmsTermsScreen> {
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
-                  onPressed: _hasAccepted
+                  onPressed: (_hasAccepted && !isLoading)
                       ? () async {
                           final viewModel = context.read<SmsIntegrationViewModel>();
                           await viewModel.requestSmsPermission(context);
@@ -165,20 +209,78 @@ class _SmsTermsScreenState extends State<SmsTermsScreen> {
                       borderRadius: BorderRadius.circular(16),
                     ),
                   ),
-                  child: Text(
-                    'Continue',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: _hasAccepted ? Colors.white : AppColors.textDisabled,
-                          fontWeight: FontWeight.w600,
+                  child: isLoading
+                      ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : Text(
+                          'Continue',
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                color: _hasAccepted ? Colors.white : AppColors.textDisabled,
+                                fontWeight: FontWeight.w600,
+                              ),
                         ),
-                  ),
                 ),
               ),
             ],
           ),
         ),
-      ),
+              ),
+            ),
+            // Loading overlay
+            if (isLoading)
+              Container(
+                color: Colors.black54,
+                child: Center(
+                  child: Card(
+                    margin: const EdgeInsets.all(AppSpacing.xl),
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppSpacing.xxl),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const CircularProgressIndicator(),
+                          const SizedBox(height: AppSpacing.lg),
+                          Text(
+                            _getLoadingMessage(viewModel.state),
+                            style: Theme.of(context).textTheme.titleMedium,
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: AppSpacing.md),
+                          Text(
+                            '${viewModel.processedMessages} of ${viewModel.totalMessages} messages processed',
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: AppColors.textSecondary,
+                                ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
     );
+  }
+
+  String _getLoadingMessage(SmsIntegrationState state) {
+    switch (state) {
+      case SmsIntegrationState.scanning:
+        return 'Scanning SMS messages...';
+      case SmsIntegrationState.parsing:
+        return 'Processing transactions...';
+      case SmsIntegrationState.creatingWallets:
+        return 'Creating wallets...';
+      default:
+        return 'Please wait...';
+    }
   }
 
   Widget _buildSection(

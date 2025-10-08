@@ -1,16 +1,34 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
-import '../../../core/constants/app_strings.dart';
 import '../../../core/constants/app_spacing.dart';
-import '../../../core/constants/app_icons.dart';
+import '../../../core/routes/app_routes.dart';
+import '../../../core/constants/app_strings.dart';
+import '../../../data/models/wallet_model.dart';
+import '../viewmodels/home_viewmodel.dart';
+import '../widgets/transaction_list_item.dart';
 
-/// Main home screen/dashboard
-class HomeScreen extends StatelessWidget {
+/// Main home screen/dashboard matching the design
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<HomeViewModel>().initialize();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: Row(
           children: [
@@ -20,162 +38,376 @@ class HomeScreen extends StatelessWidget {
               height: 32,
               width: 32,
             ),
-            const SizedBox(width: 12),
-            const Text(AppStrings.homeTitle),
+            Padding(padding: const EdgeInsets.symmetric(horizontal: 5)),
+            Text(AppStrings.homeTitle),
           ],
         ),
         actions: [
           IconButton(
             icon: const Icon(Icons.notifications_outlined),
-            iconSize: AppIcons.iconSizeLarge,
+            iconSize: 28.0,
             onPressed: () {
               // TODO: Open notifications
             },
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(AppSpacing.screenPaddingHorizontal),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Total Balance Card
-            _buildBalanceCard(context),
-            SizedBox(height: AppSpacing.sectionSpacing),
+      body: Consumer<HomeViewModel>(
+        builder: (context, viewModel, child) {
+          if (viewModel.isLoading) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-            // Quick Actions
-            _buildQuickActions(context),
-            SizedBox(height: AppSpacing.sectionSpacing),
+          return RefreshIndicator(
+            onRefresh: viewModel.refresh,
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Net Balance Card
+                  _buildNetBalanceCard(context, viewModel),
+                  const SizedBox(height: 16),
 
-            // Recent Transactions
-            _buildSectionHeader(
-              context,
-              AppStrings.recentTransactions,
-              onSeeAll: () {
-                // TODO: Navigate to transactions
-              },
+                  // Income/Expenses Row
+                  _buildIncomeExpenseCards(context, viewModel),
+                  const SizedBox(height: 24),
+
+                  // Transaction Section Header
+                  _buildTransactionHeader(context, viewModel),
+                  const SizedBox(height: 12),
+
+                  // Transactions List
+                  _buildTransactionsList(context, viewModel),
+                ],
+              ),
             ),
-            SizedBox(height: AppSpacing.md),
-            _buildRecentTransactions(),
-          ],
-        ),
+          );
+        },
       ),
+      bottomNavigationBar: _buildBottomNavigation(),
     );
   }
 
-  Widget _buildBalanceCard(BuildContext context) {
+  Widget _buildNetBalanceCard(BuildContext context, HomeViewModel viewModel) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(AppSpacing.xl),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: AppColors.primaryGradient,
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withOpacity(0.3),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
-          ),
-        ],
+        color: AppColors.primary,
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            AppStrings.totalBalance,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppColors.textWhite.withOpacity(0.9),
+          // Wallet selector
+          if (viewModel.hasWallets)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: DropdownButton<Wallet?>(
+                value: viewModel.selectedWallet,
+                isDense: true,
+                underline: const SizedBox(),
+                dropdownColor: AppColors.primary,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
                 ),
+                icon: const Icon(Icons.keyboard_arrow_down, color: Colors.white, size: 20),
+                items: [
+                  const DropdownMenuItem<Wallet?>(
+                    value: null,
+                    child: Text('All Wallets', style: TextStyle(color: Colors.white)),
+                  ),
+                  ...viewModel.wallets.map((wallet) {
+                    return DropdownMenuItem<Wallet?>(
+                      value: wallet,
+                      child: Row(
+                        children: [
+                          Icon(
+                            wallet.type == 'bank' ? Icons.account_balance : Icons.account_balance_wallet,
+                            size: 16,
+                            color: Colors.white,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(wallet.name, style: const TextStyle(color: Colors.white)),
+                        ],
+                      ),
+                    );
+                  }),
+                ],
+                onChanged: (wallet) {
+                  viewModel.selectWallet(wallet);
+                },
+              ),
+            ),
+          const SizedBox(height: 16),
+          Text(
+            viewModel.selectedWallet != null 
+                ? '${viewModel.selectedWallet!.name} Balance'
+                : 'Net Balance',
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 14,
+            ),
           ),
-          SizedBox(height: AppSpacing.sm),
+          const SizedBox(height: 8),
           Text(
-            '0 RWF', // TODO: Calculate total balance
-            style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                  color: AppColors.textWhite,
-                  fontWeight: FontWeight.bold,
-                ),
+            viewModel.getFormattedBalance(),
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildQuickActions(BuildContext context) {
+  Widget _buildIncomeExpenseCards(BuildContext context, HomeViewModel viewModel) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceAround,
       children: [
-        _buildQuickActionButton(
-          context,
-          icon: Icons.add_circle_outline,
-          label: 'Add\nTransaction',
-          onTap: () {
-            // TODO: Navigate to add transaction
-          },
+        // Income Card
+        Expanded(
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(
+                        color: AppColors.income,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Income',
+                      style: TextStyle(
+                        color: Colors.black54,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  viewModel.getFormattedIncome(),
+                  style: const TextStyle(
+                    color: AppColors.income,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
-        _buildQuickActionButton(
-          context,
-          icon: Icons.account_balance_wallet_outlined,
-          label: 'Create\nWallet',
-          onTap: () {
-            // TODO: Navigate to create wallet
-          },
-        ),
-        _buildQuickActionButton(
-          context,
-          icon: Icons.trending_up,
-          label: 'Create\nBudget',
-          onTap: () {
-            // TODO: Navigate to create budget
-          },
+        const SizedBox(width: 12),
+
+        // Expenses Card
+        Expanded(
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(
+                        color: AppColors.expense,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Expenses',
+                      style: TextStyle(
+                        color: Colors.black54,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  viewModel.getFormattedExpenses(),
+                  style: const TextStyle(
+                    color: AppColors.expense,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildQuickActionButton(
-    BuildContext context, {
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
-      child: Container(
-        width: 100,
-        padding: EdgeInsets.all(AppSpacing.lg),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
-          border: Border.all(color: AppColors.border),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.blackQuinary.withOpacity(0.05),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
+  Widget _buildTransactionHeader(BuildContext context, HomeViewModel viewModel) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        const Text(
+          'Transaction',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Colors.black,
+          ),
         ),
+        TextButton(
+          onPressed: () {
+            // TODO: Navigate to all transactions
+          },
+          child: const Text(
+            'See More',
+            style: TextStyle(
+              color: AppColors.primary,
+              fontSize: 14,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTransactionsList(BuildContext context, HomeViewModel viewModel) {
+    if (!viewModel.hasTransactions) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            children: [
+              Icon(
+                Icons.receipt_long_outlined,
+                size: 64,
+                color: Colors.grey[300],
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'No transactions yet',
+                style: TextStyle(
+                  color: Colors.grey[600],
+                  fontSize: 16,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final grouped = viewModel.groupedTransactions;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: grouped.entries.map((entry) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Date header
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Text(
+                entry.key,
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: Colors.black54,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            // Transactions for this date
+            ...entry.value.map((transaction) {
+              final walletId = transaction.walletId;
+              return TransactionListItem(
+                transaction: transaction,
+                walletName: walletId != null && walletId.isNotEmpty
+                    ? viewModel.getWalletName(walletId)
+                    : null,
+                onTap: () {
+                  // TODO: Navigate to transaction detail
+                },
+              );
+            }),
+            const SizedBox(height: 8),
+          ],
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildBottomNavigation() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildNavItem(Icons.home, 'Home', true),
+              _buildNavItem(Icons.receipt_long, 'Transactions', false),
+              _buildAddButton(),
+              _buildNavItem(Icons.pie_chart, 'Budget', false),
+              _buildNavItem(Icons.settings, 'Settings', false),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavItem(IconData icon, String label, bool isActive) {
+    return InkWell(
+      onTap: () {
+        // TODO: Navigate
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 8),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
               icon,
-              color: AppColors.primary,
-              size: AppIcons.iconSizeXLarge,
-            ),
-            SizedBox(height: AppSpacing.sm),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w500,
-                  ),
+              color: isActive ? AppColors.primary : Colors.grey,
+              size: 24,
             ),
           ],
         ),
@@ -183,48 +415,19 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSectionHeader(
-    BuildContext context,
-    String title, {
-    VoidCallback? onSeeAll,
-  }) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          title,
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-        ),
-        if (onSeeAll != null)
-          TextButton(
-            onPressed: onSeeAll,
-            child: const Text(AppStrings.seeAll),
-          ),
-      ],
-    );
-  }
-
-  Widget _buildRecentTransactions() {
-    // TODO: Fetch and display recent transactions
-    return Center(
-      child: Padding(
-        padding: EdgeInsets.all(AppSpacing.xxl),
-        child: Column(
-          children: [
-            Icon(
-              Icons.receipt_long_outlined,
-              size: AppIcons.iconSizeXXLarge,
-              color: AppColors.grayTertiary,
-            ),
-            SizedBox(height: AppSpacing.lg),
-            Text(
-              AppStrings.emptyTransactions,
-              style: TextStyle(color: AppColors.textSecondary),
-            ),
-          ],
-        ),
+  Widget _buildAddButton() {
+    return Container(
+      width: 56,
+      height: 56,
+      decoration: BoxDecoration(
+        color: AppColors.primary,
+        shape: BoxShape.circle,
+      ),
+      child: IconButton(
+        icon: const Icon(Icons.add, color: Colors.white, size: 28),
+        onPressed: () {
+          // TODO: Navigate to add transaction
+        },
       ),
     );
   }

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../features/splash/screens/splash_screen.dart';
 import '../../features/onboarding/screens/onboarding_screen.dart';
 import '../../features/home/screens/home_screen.dart';
+import '../../features/home/viewmodels/home_viewmodel.dart';
 import '../../features/wallet/screens/wallet_name_screen.dart';
 import '../../features/wallet/viewmodels/create_wallet_viewmodel.dart';
 import '../../features/sms_integration/screens/sms_terms_screen.dart';
@@ -86,7 +87,10 @@ class RouteGenerator {
 
       case AppRoutes.home:
         return MaterialPageRoute(
-          builder: (_) => const HomeScreen(),
+          builder: (_) => ChangeNotifierProvider(
+            create: (_) => HomeViewModel(),
+            child: const HomeScreen(),
+          ),
           settings: settings,
         );
 
@@ -103,25 +107,38 @@ class RouteGenerator {
         return MaterialPageRoute(
           builder: (_) => ChangeNotifierProvider(
             create: (_) => SmsIntegrationViewModel(),
-            child: const SmsTermsScreen(),
+            child: Builder(
+              builder: (context) {
+                // Provide the same ViewModel to both screens via navigation
+                return const SmsTermsScreen();
+              },
+            ),
           ),
           settings: settings,
         );
 
       case AppRoutes.smsLoading:
-        // Extract the viewModel from arguments if passed
+        // The ViewModel MUST be passed as argument
         final viewModel = settings.arguments as SmsIntegrationViewModel?;
         
+        if (viewModel == null) {
+          // This should never happen - log error and create fallback
+          debugPrint('⚠️ ERROR: SmsLoadingScreen requires SmsIntegrationViewModel argument!');
+          return MaterialPageRoute(
+            builder: (_) => ChangeNotifierProvider(
+              create: (_) => SmsIntegrationViewModel(),
+              child: const SmsLoadingScreen(),
+            ),
+            settings: settings,
+          );
+        }
+        
+        // Use ListenableProvider to keep the viewModel alive without owning it
         return MaterialPageRoute(
-          builder: (_) => viewModel != null
-              ? ChangeNotifierProvider.value(
-                  value: viewModel,
-                  child: const SmsLoadingScreen(),
-                )
-              : ChangeNotifierProvider(
-                  create: (_) => SmsIntegrationViewModel(),
-                  child: const SmsLoadingScreen(),
-                ),
+          builder: (_) => ListenableProvider.value(
+            value: viewModel,
+            child: const SmsLoadingScreen(),
+          ),
           settings: settings,
         );
 
