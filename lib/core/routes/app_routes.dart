@@ -9,6 +9,8 @@ import '../../features/wallet/viewmodels/create_wallet_viewmodel.dart';
 import '../../features/sms_integration/screens/sms_terms_screen.dart';
 import '../../features/sms_integration/screens/sms_loading_screen.dart';
 import '../../features/sms_integration/viewmodels/sms_integration_viewmodel.dart';
+import '../../features/transaction/screens/add_transaction_screen.dart';
+import '../../features/transaction/viewmodels/add_transaction_viewmodel.dart';
 
 /// App route names
 class AppRoutes {
@@ -138,6 +140,15 @@ class RouteGenerator {
           builder: (_) => ListenableProvider.value(
             value: viewModel,
             child: const SmsLoadingScreen(),
+          ),
+          settings: settings,
+        );
+
+      case AppRoutes.addTransaction:
+        return MaterialPageRoute(
+          builder: (_) => ChangeNotifierProvider(
+            create: (_) => AddTransactionViewModel(),
+            child: const AddTransactionScreen(),
           ),
           settings: settings,
         );

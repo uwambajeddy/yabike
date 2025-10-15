@@ -416,18 +416,33 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildAddButton() {
-    return Container(
-      width: 56,
-      height: 56,
-      decoration: BoxDecoration(
-        color: AppColors.primary,
-        shape: BoxShape.circle,
-      ),
-      child: IconButton(
-        icon: const Icon(Icons.add, color: Colors.white, size: 28),
-        onPressed: () {
-          // TODO: Navigate to add transaction
-        },
+    return GestureDetector(
+      onTap: () async {
+        // Navigate to add transaction and refresh on return
+        await Navigator.pushNamed(context, AppRoutes.addTransaction);
+        if (mounted) {
+          context.read<HomeViewModel>().refresh();
+        }
+      },
+      child: Container(
+        width: 56,
+        height: 56,
+        decoration: BoxDecoration(
+          color: AppColors.primary,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primary.withOpacity(0.3),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: const Icon(
+          Icons.add,
+          color: Colors.white,
+          size: 28,
+        ),
       ),
     );
   }

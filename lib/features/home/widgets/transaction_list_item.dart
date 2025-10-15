@@ -83,12 +83,8 @@ class TransactionListItem extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: _getWalletColor(walletName!).withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: _getWalletColor(walletName!).withOpacity(0.4),
-                          width: 1,
-                        ),
+                        color: _getWalletColor(walletName!),
+                        borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
                         walletName!,
@@ -121,19 +117,15 @@ class TransactionListItem extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
-                      color: AppColors.textTertiary.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: AppColors.textTertiary.withOpacity(0.3),
-                        width: 1,
-                      ),
+                      color: const Color(0xFFF5F5F5),
+                      borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
                       'Fee: ${transaction.currency} ${_formatAmount(transaction.fee!)}',
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            color: AppColors.textTertiary,
+                            color: const Color(0xFF666666),
                             fontSize: 9,
-                            fontWeight: FontWeight.w500,
+                            fontWeight: FontWeight.w600,
                           ),
                     ),
                   ),
@@ -154,11 +146,11 @@ class TransactionListItem extends StatelessWidget {
   Color _getWalletColor(String walletName) {
     final lowerName = walletName.toLowerCase();
     if (lowerName.contains('equity')) {
-      return const Color(0xFFD90025); // Equity Bank red
+      return const Color(0xFFFFEBEE); // Light red background
     } else if (lowerName.contains('mtn') || lowerName.contains('mobile money')) {
-      return const Color(0xFFFFCC08); // MTN yellow
+      return const Color(0xFFFFF9E6); // Light yellow background
     }
-    return AppColors.primary; // Default color
+    return const Color(0xFFE8F5E9); // Light green background
   }
 
   Color _getWalletTextColor(String walletName) {
@@ -166,8 +158,8 @@ class TransactionListItem extends StatelessWidget {
     if (lowerName.contains('equity')) {
       return const Color(0xFFD90025); // Equity Bank red
     } else if (lowerName.contains('mtn') || lowerName.contains('mobile money')) {
-      return const Color(0xFFB8900A); // Darker yellow for readability
+      return const Color(0xFFB8900A); // Dark yellow for readability
     }
-    return AppColors.primary; // Default color
+    return const Color(0xFF2E7D32); // Dark green
   }
 }
