@@ -8,12 +8,14 @@ class TransactionListItem extends StatelessWidget {
   final Transaction transaction;
   final String? walletName;
   final VoidCallback? onTap;
+  final String? emoji;
 
   const TransactionListItem({
     super.key,
     required this.transaction,
     this.walletName,
     this.onTap,
+    this.emoji,
   });
 
   @override
@@ -41,6 +43,23 @@ class TransactionListItem extends StatelessWidget {
               decoration: BoxDecoration(
                 color: color,
                 borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.md),
+
+            // Icon/Emoji
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Center(
+                child: Text(
+                  emoji ?? _getDefaultEmoji(transaction.category),
+                  style: const TextStyle(fontSize: 20),
+                ),
               ),
             ),
             const SizedBox(width: AppSpacing.md),
@@ -141,6 +160,20 @@ class TransactionListItem extends StatelessWidget {
   String _formatAmount(double amount) {
     final formatter = NumberFormat('#,###');
     return formatter.format(amount);
+  }
+
+  String _getDefaultEmoji(String category) {
+    final categoryLower = category.toLowerCase();
+    if (categoryLower.contains('food') || categoryLower.contains('restaurant')) return '🍔';
+    if (categoryLower.contains('transport') || categoryLower.contains('vehicle')) return '🚗';
+    if (categoryLower.contains('shopping') || categoryLower.contains('retail')) return '🛍️';
+    if (categoryLower.contains('entertainment')) return '🎬';
+    if (categoryLower.contains('health') || categoryLower.contains('medical')) return '💊';
+    if (categoryLower.contains('investment') || categoryLower.contains('dividend')) return '💰';
+    if (categoryLower.contains('salary') || categoryLower.contains('income')) return '💵';
+    if (categoryLower.contains('transfer')) return '💸';
+    if (categoryLower.contains('bill') || categoryLower.contains('utility')) return '📄';
+    return '💰'; // Default
   }
 
   Color _getWalletColor(String walletName) {

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
-import '../../../core/constants/app_spacing.dart';
 import '../../../core/routes/app_routes.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../data/models/wallet_model.dart';
@@ -10,7 +9,12 @@ import '../widgets/transaction_list_item.dart';
 
 /// Main home screen/dashboard matching the design
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final bool showBottomNav;
+
+  const HomeScreen({
+    super.key,
+    this.showBottomNav = true,
+  });
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -58,6 +62,31 @@ class _HomeScreenState extends State<HomeScreen> {
             return const Center(child: CircularProgressIndicator());
           }
 
+          // Show snackbar when new transactions are imported
+          if (viewModel.newTransactionsCount > 0 && !viewModel.isRefreshing) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Row(
+                    children: [
+                      const Icon(Icons.check_circle, color: Colors.white),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          '✨ Imported ${viewModel.newTransactionsCount} new transaction${viewModel.newTransactionsCount > 1 ? 's' : ''}!',
+                          style: const TextStyle(fontWeight: FontWeight.w500),
+                        ),
+                      ),
+                    ],
+                  ),
+                  backgroundColor: AppColors.primary,
+                  duration: const Duration(seconds: 3),
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            });
+          }
+
           return RefreshIndicator(
             onRefresh: viewModel.refresh,
             child: SingleChildScrollView(
@@ -86,7 +115,7 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         },
       ),
-      bottomNavigationBar: _buildBottomNavigation(),
+      bottomNavigationBar: widget.showBottomNav ? _buildBottomNavigation() : null,
     );
   }
 
@@ -271,20 +300,42 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildTransactionHeader(BuildContext context, HomeViewModel viewModel) {
+    final totalTransactions = viewModel.totalTransactionCount;
+    
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        const Text(
-          'Transaction',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: Colors.black,
-          ),
+        Row(
+          children: [
+            const Text(
+              'Transaction',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                '$totalTransactions',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
         ),
         TextButton(
           onPressed: () {
-            // TODO: Navigate to all transactions
+            Navigator.pushNamed(context, AppRoutes.transactions);
           },
           child: const Text(
             'See More',
@@ -353,7 +404,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     ? viewModel.getWalletName(walletId)
                     : null,
                 onTap: () {
-                  // TODO: Navigate to transaction detail
+                  Navigator.pushNamed(
+                    context,
+                    AppRoutes.transactionDetail,
+                    arguments: transaction,
+                  );
                 },
               );
             }),
@@ -395,21 +450,36 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildNavItem(IconData icon, String label, bool isActive) {
-    return InkWell(
-      onTap: () {
-        // TODO: Navigate
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              color: isActive ? AppColors.primary : Colors.grey,
-              size: 24,
-            ),
-          ],
+    return Expanded(
+      child: InkWell(
+        onTap: () {
+          if (label == 'Transactions') {
+            Navigator.pushNamed(context, AppRoutes.transactions);
+          }
+          // TODO: Add navigation for Budget and Settings tabs
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                color: isActive ? AppColors.primary : Colors.grey,
+                size: 24,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  color: isActive ? AppColors.primary : Colors.grey,
+                  fontSize: 10,
+                  fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
         ),
       ),
     );
