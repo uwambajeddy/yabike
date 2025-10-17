@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../features/splash/screens/splash_screen.dart';
 import '../../features/onboarding/screens/onboarding_screen.dart';
+import '../../features/main/screens/main_screen.dart';
 import '../../features/home/screens/home_screen.dart';
 import '../../features/home/viewmodels/home_viewmodel.dart';
 import '../../features/wallet/screens/wallet_name_screen.dart';
@@ -10,7 +11,12 @@ import '../../features/sms_integration/screens/sms_terms_screen.dart';
 import '../../features/sms_integration/screens/sms_loading_screen.dart';
 import '../../features/sms_integration/viewmodels/sms_integration_viewmodel.dart';
 import '../../features/transaction/screens/add_transaction_screen.dart';
+import '../../features/transaction/screens/transactions_screen.dart';
+import '../../features/transaction/screens/transaction_detail_screen.dart';
 import '../../features/transaction/viewmodels/add_transaction_viewmodel.dart';
+import '../../features/transaction/viewmodels/transactions_viewmodel.dart';
+import '../../features/transaction/viewmodels/transaction_detail_viewmodel.dart';
+import '../../data/models/transaction_model.dart';
 
 /// App route names
 class AppRoutes {
@@ -89,10 +95,14 @@ class RouteGenerator {
 
       case AppRoutes.home:
         return MaterialPageRoute(
-          builder: (_) => ChangeNotifierProvider(
-            create: (_) => HomeViewModel(),
-            child: const HomeScreen(),
-          ),
+          builder: (_) => const MainScreen(initialIndex: 0),
+          settings: settings,
+        );
+
+      case AppRoutes.main:
+        final index = settings.arguments as int? ?? 0;
+        return MaterialPageRoute(
+          builder: (_) => MainScreen(initialIndex: index),
           settings: settings,
         );
 
@@ -149,6 +159,29 @@ class RouteGenerator {
           builder: (_) => ChangeNotifierProvider(
             create: (_) => AddTransactionViewModel(),
             child: const AddTransactionScreen(),
+          ),
+          settings: settings,
+        );
+
+      case AppRoutes.transactions:
+        return MaterialPageRoute(
+          builder: (_) => const MainScreen(initialIndex: 1),
+          settings: settings,
+        );
+
+      case AppRoutes.transactionDetail:
+        final transaction = settings.arguments as Transaction?;
+        if (transaction == null) {
+          return MaterialPageRoute(
+            builder: (_) => const Scaffold(
+              body: Center(child: Text('Transaction not found')),
+            ),
+          );
+        }
+        return MaterialPageRoute(
+          builder: (_) => ChangeNotifierProvider(
+            create: (_) => TransactionDetailViewModel(),
+            child: TransactionDetailScreen(transaction: transaction),
           ),
           settings: settings,
         );

@@ -1,9 +1,23 @@
 import 'package:flutter/foundation.dart';
+import 'dart:convert';
+import 'package:crypto/crypto.dart';
 import '../models/transaction_model.dart';
 
 class SmsParserService {
   // Constants (matching React Native implementation)
   static const double usdToRwf = 1440.0;
+  
+  /// Generate a unique transaction ID based on date and message content
+  /// This prevents duplicate IDs when processing multiple SMS at once
+  static String _generateTransactionId(DateTime date, String message) {
+    // Use the date's milliseconds as base
+    final dateId = date.millisecondsSinceEpoch.toString();
+    
+    // Create a short hash from the message to ensure uniqueness
+    final messageHash = md5.convert(utf8.encode(message)).toString().substring(0, 6);
+    
+    return '$dateId$messageHash';
+  }
   
   static const List<String> smsSenders = [
     'EQUITYBANK',
@@ -107,7 +121,7 @@ class SmsParserService {
         }
         
         return Transaction(
-          id: DateTime.now().millisecondsSinceEpoch.toString(),
+          id: _generateTransactionId(date, message),
           date: date,
           source: 'EQUITYBANK',
           rawMessage: message,
@@ -141,7 +155,7 @@ class SmsParserService {
         final reference = refMatch?.group(1);
         
         return Transaction(
-          id: DateTime.now().millisecondsSinceEpoch.toString(),
+          id: _generateTransactionId(date, message),
           date: date,
           source: 'EQUITYBANK',
           rawMessage: message,
@@ -185,7 +199,7 @@ class SmsParserService {
         final location = locationMatch?.group(1)?.trim();
         
         return Transaction(
-          id: DateTime.now().millisecondsSinceEpoch.toString(),
+          id: _generateTransactionId(date, message),
           date: date,
           source: 'EQUITYBANK',
           rawMessage: message,
@@ -227,7 +241,7 @@ class SmsParserService {
         final location = locationMatch?.group(1)?.trim();
         
         return Transaction(
-          id: DateTime.now().millisecondsSinceEpoch.toString(),
+          id: _generateTransactionId(date, message),
           date: date,
           source: 'EQUITYBANK',
           rawMessage: message,
@@ -261,7 +275,7 @@ class SmsParserService {
         final cardNumber = cardMatch?.group(1);
         
         return Transaction(
-          id: DateTime.now().millisecondsSinceEpoch.toString(),
+          id: _generateTransactionId(date, message),
           date: date,
           source: 'EQUITYBANK',
           rawMessage: message,
@@ -296,7 +310,7 @@ class SmsParserService {
         final details = detailsMatch?.group(1)?.trim() ?? 'Card transaction';
         
         return Transaction(
-          id: DateTime.now().millisecondsSinceEpoch.toString(),
+          id: _generateTransactionId(date, message),
           date: date,
           source: 'EQUITYBANK',
           rawMessage: message,
@@ -329,7 +343,7 @@ class SmsParserService {
         final balance = balanceMatch != null ? double.parse(balanceMatch.group(1)!) : null;
         
         return Transaction(
-          id: DateTime.now().millisecondsSinceEpoch.toString(),
+          id: _generateTransactionId(date, message),
           date: date,
           source: 'EQUITYBANK',
           rawMessage: message,
@@ -379,7 +393,7 @@ class SmsParserService {
         final txId = fromMatch?.group(1);
         
         return Transaction(
-          id: DateTime.now().millisecondsSinceEpoch.toString(),
+          id: _generateTransactionId(date, message),
           date: date,
           source: 'M-MONEY',
           rawMessage: message,
@@ -422,7 +436,7 @@ class SmsParserService {
         final txId = txIdMatch?.group(1);
         
         return Transaction(
-          id: DateTime.now().millisecondsSinceEpoch.toString(),
+          id: _generateTransactionId(date, message),
           date: date,
           source: 'M-MONEY',
           rawMessage: message,
@@ -461,7 +475,7 @@ class SmsParserService {
         final txId = fromMatch?.group(1);
         
         return Transaction(
-          id: DateTime.now().millisecondsSinceEpoch.toString(),
+          id: _generateTransactionId(date, message),
           date: date,
           source: 'M-MONEY',
           rawMessage: message,
@@ -496,7 +510,7 @@ class SmsParserService {
         final txId = txIdMatch?.group(1);
         
         return Transaction(
-          id: DateTime.now().millisecondsSinceEpoch.toString(),
+          id: _generateTransactionId(date, message),
           date: date,
           source: 'M-MONEY',
           rawMessage: message,
@@ -541,7 +555,7 @@ class SmsParserService {
         final txId = txIdMatch?.group(1);
         
         return Transaction(
-          id: DateTime.now().millisecondsSinceEpoch.toString(),
+          id: _generateTransactionId(date, message),
           date: date,
           source: 'M-MONEY',
           rawMessage: message,
@@ -573,7 +587,7 @@ class SmsParserService {
         final txId = txIdMatch?.group(1);
         
         return Transaction(
-          id: DateTime.now().millisecondsSinceEpoch.toString(),
+          id: _generateTransactionId(date, message),
           date: date,
           source: 'M-MONEY',
           rawMessage: message,
@@ -606,7 +620,7 @@ class SmsParserService {
         final txId = txIdMatch?.group(1);
         
         return Transaction(
-          id: DateTime.now().millisecondsSinceEpoch.toString(),
+          id: _generateTransactionId(date, message),
           date: date,
           source: 'M-MONEY',
           rawMessage: message,
@@ -643,7 +657,7 @@ class SmsParserService {
         final reversalDate = dateMatch?.group(1);
         
         return Transaction(
-          id: DateTime.now().millisecondsSinceEpoch.toString(),
+          id: _generateTransactionId(date, message),
           date: date,
           source: 'M-MONEY',
           rawMessage: message,
@@ -659,6 +673,113 @@ class SmsParserService {
         );
       }
 
+      // Pattern 7: Shortened merchant payment format (without "on your MOMO account")
+      // Example: "*164*S*Y'ello, A transaction of 100 RWF by MTN RWANDACELL LIMITED was completed at 2025-10-11 01:01:29. Balance:72760 RWF. Fee 0 RWF. FT Id: 23409949413.*RW#"
+      final shortMerchantMatch = RegExp(
+        r"\*164\*S?\*Y'ello,?\s+A transaction of\s+([\d,]+)\s+RWF\s+by\s+([^.]+?)\s+was completed",
+        caseSensitive: false
+      ).firstMatch(message);
+      
+      if (shortMerchantMatch != null) {
+        final amountStr = shortMerchantMatch.group(1)!.replaceAll(',', '');
+        final amount = double.parse(amountStr);
+        final merchant = shortMerchantMatch.group(2)!.trim();
+        
+        // Extract balance
+        final balanceMatch = RegExp(r'Balance:\s*([\d,]+)\s+RWF', caseSensitive: false).firstMatch(message);
+        final balance = balanceMatch != null ? double.parse(balanceMatch.group(1)!.replaceAll(',', '')) : null;
+        
+        // Extract transaction ID
+        final txIdMatch = RegExp(r'(?:FT Id|Financial Transaction Id):\s*([A-Z0-9]+)', caseSensitive: false).firstMatch(message);
+        final txId = txIdMatch?.group(1);
+        
+        // Extract fee
+        final feeMatch = RegExp(r'Fee\s+([\d,]+)\s+RWF', caseSensitive: false).firstMatch(message);
+        final fee = feeMatch != null ? double.parse(feeMatch.group(1)!.replaceAll(',', '')) : null;
+        
+        return Transaction(
+          id: _generateTransactionId(date, message),
+          date: date,
+          source: 'M-MONEY',
+          rawMessage: message,
+          type: 'debit',
+          category: 'Merchant Payment',
+          amount: amount,
+          currency: 'RWF',
+          amountRWF: amount,
+          description: 'Payment to $merchant',
+          recipient: merchant,
+          reference: txId,
+          fee: fee,
+          balanceRWF: balance,
+        );
+      }
+
+      // Pattern 8: Adjustment/Credit to account
+      // Example: "An adjustment has been made and 500 RWF has been added to your mobile money account 20092065 at 2025-01-29 16:06:06"
+      final adjustmentMatch = RegExp(
+        r'adjustment has been made and\s+([\d,]+)\s+RWF\s+has been added',
+        caseSensitive: false
+      ).firstMatch(message);
+      
+      if (adjustmentMatch != null) {
+        final amountStr = adjustmentMatch.group(1)!.replaceAll(',', '');
+        final amount = double.parse(amountStr);
+        
+        // Extract new balance
+        final balanceMatch = RegExp(r'NEW BALANCE:\s*([\d,]+)\s+RWF', caseSensitive: false).firstMatch(message);
+        final balance = balanceMatch != null ? double.parse(balanceMatch.group(1)!.replaceAll(',', '')) : null;
+        
+        // Extract transaction ID
+        final txIdMatch = RegExp(r'Financial Transaction Id:\s*([A-Z0-9]+)', caseSensitive: false).firstMatch(message);
+        final txId = txIdMatch?.group(1);
+        
+        return Transaction(
+          id: _generateTransactionId(date, message),
+          date: date,
+          source: 'M-MONEY',
+          rawMessage: message,
+          type: 'credit',
+          category: 'Adjustment',
+          amount: amount,
+          currency: 'RWF',
+          amountRWF: amount,
+          description: 'Account adjustment',
+          reference: txId,
+          balanceRWF: balance,
+        );
+      }
+
+      // Pattern 9: Refund from MTN
+      // Example: "*165*R*Y'ello, MTN RWANDACELL LIMITED has successfully refunded 3000 RWF to your mobile money account at 2025-01-25 09:01:17"
+      final refundMatch = RegExp(
+        r'\*165\*R\*.*?refunded\s+([\d,]+)\s+RWF',
+        caseSensitive: false
+      ).firstMatch(message);
+      
+      if (refundMatch != null) {
+        final amountStr = refundMatch.group(1)!.replaceAll(',', '');
+        final amount = double.parse(amountStr);
+        
+        // Extract new balance
+        final balanceMatch = RegExp(r'new balance:\s*([\d,]+)\s+RWF', caseSensitive: false).firstMatch(message);
+        final balance = balanceMatch != null ? double.parse(balanceMatch.group(1)!.replaceAll(',', '')) : null;
+        
+        return Transaction(
+          id: _generateTransactionId(date, message),
+          date: date,
+          source: 'M-MONEY',
+          rawMessage: message,
+          type: 'credit',
+          category: 'Refund',
+          amount: amount,
+          currency: 'RWF',
+          amountRWF: amount,
+          description: 'Refund from MTN RWANDACELL',
+          balanceRWF: balance,
+        );
+      }
+
       return null;
     } catch (e) {
       debugPrint('Error parsing MTN MoMo SMS: $e');
@@ -666,3 +787,4 @@ class SmsParserService {
     }
   }
 }
+

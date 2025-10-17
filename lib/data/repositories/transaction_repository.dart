@@ -83,6 +83,11 @@ class TransactionRepository {
     await _transactionsBox.delete(id);
   }
   
+  /// Clear all transactions (useful for re-importing)
+  Future<void> clearAllTransactions() async {
+    await _transactionsBox.clear();
+  }
+  
   /// Get total income
   double getTotalIncome({String? walletId, DateTime? start, DateTime? end}) {
     var transactions = walletId != null

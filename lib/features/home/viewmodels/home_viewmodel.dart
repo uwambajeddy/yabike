@@ -3,23 +3,37 @@ import '../../../data/models/wallet_model.dart';
 import '../../../data/models/transaction_model.dart';
 import '../../../data/repositories/wallet_repository.dart';
 import '../../../data/repositories/transaction_repository.dart';
+import '../../../data/services/sms_rescan_service.dart';
 
 class HomeViewModel extends ChangeNotifier {
   final WalletRepository _walletRepository = WalletRepository();
   final TransactionRepository _transactionRepository = TransactionRepository();
+  final SmsRescanService _smsRescanService = SmsRescanService();
 
   List<Wallet> _wallets = [];
   List<Transaction> _recentTransactions = [];
   Wallet? _selectedWallet; // null means "All Wallets"
   bool _isLoading = true;
+  bool _isRefreshing = false;
+  int _newTransactionsCount = 0;
 
   // Getters
   List<Wallet> get wallets => _wallets;
   List<Transaction> get recentTransactions => _recentTransactions;
   Wallet? get selectedWallet => _selectedWallet;
   bool get isLoading => _isLoading;
+  bool get isRefreshing => _isRefreshing;
+  int get newTransactionsCount => _newTransactionsCount;
   bool get hasWallets => _wallets.isNotEmpty;
   bool get hasTransactions => _recentTransactions.isNotEmpty;
+  
+  /// Get total transaction count (all or filtered by selected wallet)
+  int get totalTransactionCount {
+    if (_selectedWallet != null) {
+      return _transactionRepository.getTransactionsByWallet(_selectedWallet!.id).length;
+    }
+    return _transactionRepository.getAllTransactions().length;
+  }
 
   /// Get total balance (all wallets or selected wallet)
   double get totalBalance {
@@ -66,6 +80,19 @@ class HomeViewModel extends ChangeNotifier {
     try {
       await _loadWallets();
       await _loadRecentTransactions();
+      
+      // Auto-scan for new SMS transactions on app launch
+      debugPrint('🔄 Auto-scanning for new SMS transactions...');
+      final newCount = await _smsRescanService.rescanAndImportNewTransactions();
+      
+      if (newCount > 0) {
+        debugPrint('✅ Auto-imported $newCount new transaction(s) on app launch!');
+        _newTransactionsCount = newCount;
+        // Reload transactions to include the new ones
+        await _loadRecentTransactions();
+      } else {
+        debugPrint('✓ No new transactions found');
+      }
     } catch (e) {
       debugPrint('Error initializing home screen: $e');
     } finally {
@@ -98,9 +125,29 @@ class HomeViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Refresh all data
+  /// Refresh all data and rescan SMS for new transactions
   Future<void> refresh() async {
-    await initialize();
+    _isRefreshing = true;
+    _newTransactionsCount = 0;
+    notifyListeners();
+
+    try {
+      // Rescan SMS messages for new transactions
+      final newCount = await _smsRescanService.rescanAndImportNewTransactions();
+      _newTransactionsCount = newCount;
+      
+      // Reload all data
+      await initialize();
+      
+      if (newCount > 0) {
+        debugPrint('Successfully imported $newCount new transactions!');
+      }
+    } catch (e) {
+      debugPrint('❌ Error during refresh: $e');
+    } finally {
+      _isRefreshing = false;
+      notifyListeners();
+    }
   }
 
   /// Get transactions grouped by date
