@@ -17,6 +17,9 @@ import '../../features/transaction/viewmodels/add_transaction_viewmodel.dart';
 import '../../features/transaction/viewmodels/transactions_viewmodel.dart';
 import '../../features/transaction/viewmodels/transaction_detail_viewmodel.dart';
 import '../../data/models/transaction_model.dart';
+import '../../features/budget/screens/add_budget_screen.dart';
+import '../../features/budget/viewmodels/add_budget_viewmodel.dart';
+import '../../data/models/budget_model.dart';
 
 /// App route names
 class AppRoutes {
@@ -182,6 +185,32 @@ class RouteGenerator {
           builder: (_) => ChangeNotifierProvider(
             create: (_) => TransactionDetailViewModel(),
             child: TransactionDetailScreen(transaction: transaction),
+          ),
+          settings: settings,
+        );
+
+      case AppRoutes.createBudget:
+        return MaterialPageRoute(
+          builder: (_) => ChangeNotifierProvider(
+            create: (_) => AddBudgetViewModel(),
+            child: const AddBudgetScreen(),
+          ),
+          settings: settings,
+        );
+
+      case AppRoutes.editBudget:
+        final budget = settings.arguments as Budget?;
+        if (budget == null) {
+          return MaterialPageRoute(
+            builder: (_) => const Scaffold(
+              body: Center(child: Text('Budget not found')),
+            ),
+          );
+        }
+        return MaterialPageRoute(
+          builder: (_) => ChangeNotifierProvider(
+            create: (_) => AddBudgetViewModel(),
+            child: AddBudgetScreen(budget: budget),
           ),
           settings: settings,
         );

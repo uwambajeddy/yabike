@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sms_advanced/sms_advanced.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/transaction_model.dart';
 import '../repositories/transaction_repository.dart';
 import '../repositories/wallet_repository.dart';
@@ -10,12 +11,18 @@ import 'sms_parser_service.dart';
 class SmsRescanService {
   final TransactionRepository _transactionRepository = TransactionRepository();
   final WalletRepository _walletRepository = WalletRepository();
+  
+  static const String _lastScanKey = 'last_sms_scan_timestamp';
+  static const String _lastScanCountKey = 'last_sms_scan_count';
 
   /// Rescan SMS messages and import new transactions
   /// Returns the number of new transactions imported
-  Future<int> rescanAndImportNewTransactions() async {
+  /// 
+  /// [forceFullScan] - If true, scans all messages. If false (default), only scans new messages since last scan.
+  Future<int> rescanAndImportNewTransactions({bool forceFullScan = false}) async {
     try {
       debugPrint('\n====== RESCANNING SMS MESSAGES ======');
+      debugPrint('🔍 Scan mode: ${forceFullScan ? "FULL SCAN" : "INCREMENTAL (new messages only)"}');
       
       // Check if we have permission
       final status = await Permission.sms.status;
@@ -24,39 +31,62 @@ class SmsRescanService {
         return 0;
       }
 
+      // Get last scan timestamp
+      final prefs = await SharedPreferences.getInstance();
+      final lastScanTimestamp = prefs.getInt(_lastScanKey);
+      final lastScanCount = prefs.getInt(_lastScanCountKey) ?? 0;
+      
+      DateTime? scanFromDate;
+      if (!forceFullScan && lastScanTimestamp != null) {
+        scanFromDate = DateTime.fromMillisecondsSinceEpoch(lastScanTimestamp);
+        debugPrint('📅 Last scan: ${scanFromDate.toString()}');
+        debugPrint('📊 Messages scanned in last run: $lastScanCount');
+      } else {
+        debugPrint('📅 No previous scan found or forcing full scan');
+      }
+
       // Get existing transaction IDs to avoid duplicates
       final existingTransactions = _transactionRepository.getAllTransactions();
       final existingIds = existingTransactions.map((t) => t.id).toSet();
       
-      debugPrint('📊 Existing transactions: ${existingIds.length}');
+      debugPrint('📊 Existing transactions in DB: ${existingIds.length}');
 
       // Query SMS messages from known senders
       final query = SmsQuery();
       final List<SmsMessage> allMessages = [];
+      final startTime = DateTime.now();
 
-      // Get messages from Equity Bank
+      // Get messages from Equity Bank (only after last scan date if incremental)
       try {
         final equityMessages = await query.querySms(
           address: 'EQUITYBANK',
+          start: scanFromDate?.millisecondsSinceEpoch,
         );
         allMessages.addAll(equityMessages);
-        debugPrint('📨 Found ${equityMessages.length} Equity Bank messages');
+        debugPrint('📨 Found ${equityMessages.length} Equity Bank messages${scanFromDate != null ? " (since $scanFromDate)" : ""}');
       } catch (e) {
         debugPrint('⚠️ Error querying Equity Bank messages: $e');
       }
 
-      // Get messages from MTN MoMo
+      // Get messages from MTN MoMo (only after last scan date if incremental)
       try {
         final momoMessages = await query.querySms(
           address: 'M-Money',
+          start: scanFromDate?.millisecondsSinceEpoch,
         );
         allMessages.addAll(momoMessages);
-        debugPrint('📨 Found ${momoMessages.length} MTN MoMo messages');
+        debugPrint('📨 Found ${momoMessages.length} MTN MoMo messages${scanFromDate != null ? " (since $scanFromDate)" : ""}');
       } catch (e) {
         debugPrint('⚠️ Error querying MTN MoMo messages: $e');
       }
 
       debugPrint('📱 Total SMS messages to scan: ${allMessages.length}');
+      
+      // If no new messages, return early
+      if (allMessages.isEmpty) {
+        debugPrint('✓ No new messages to scan');
+        return 0;
+      }
 
       // Parse messages and collect new transactions
       final List<Transaction> newTransactions = [];
@@ -98,7 +128,11 @@ class SmsRescanService {
         }
       }
 
+      final endTime = DateTime.now();
+      final scanDuration = endTime.difference(startTime);
+      
       debugPrint('\n====== RESCAN SUMMARY ======');
+      debugPrint('⏱️  Scan duration: ${scanDuration.inMilliseconds}ms');
       debugPrint('✅ New transactions found: ${newTransactions.length}');
       debugPrint('⏭️  Skipped duplicates: $skippedDuplicates');
       debugPrint('❌ Failed to parse: $failedToParse');
@@ -115,6 +149,11 @@ class SmsRescanService {
         debugPrint('   - MTN MoMo: $momoCount');
       }
       
+      // Update last scan timestamp
+      await prefs.setInt(_lastScanKey, DateTime.now().millisecondsSinceEpoch);
+      await prefs.setInt(_lastScanCountKey, allMessages.length);
+      debugPrint('💾 Updated last scan timestamp');
+      
       debugPrint('==============================\n');
 
       return newTransactions.length;
@@ -122,6 +161,34 @@ class SmsRescanService {
       debugPrint('❌ ERROR in rescanAndImportNewTransactions: $e');
       debugPrint('Stack trace: $stackTrace');
       return 0;
+    }
+  }
+
+  /// Reset the last scan timestamp to force a full rescan on next import
+  /// Useful for troubleshooting or when user wants to re-import all transactions
+  Future<void> resetLastScanTimestamp() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_lastScanKey);
+      await prefs.remove(_lastScanCountKey);
+      debugPrint('✅ Reset SMS scan timestamp - next scan will be a full scan');
+    } catch (e) {
+      debugPrint('❌ Error resetting scan timestamp: $e');
+    }
+  }
+
+  /// Get the last scan timestamp
+  Future<DateTime?> getLastScanTimestamp() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final timestamp = prefs.getInt(_lastScanKey);
+      if (timestamp != null) {
+        return DateTime.fromMillisecondsSinceEpoch(timestamp);
+      }
+      return null;
+    } catch (e) {
+      debugPrint('❌ Error getting last scan timestamp: $e');
+      return null;
     }
   }
 

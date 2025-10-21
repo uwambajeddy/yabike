@@ -6,6 +6,8 @@ import '../../home/screens/home_screen.dart';
 import '../../home/viewmodels/home_viewmodel.dart';
 import '../../transaction/screens/transactions_screen.dart';
 import '../../transaction/viewmodels/transactions_viewmodel.dart';
+import '../../budget/screens/budget_screen.dart';
+import '../../budget/viewmodels/budget_viewmodel.dart';
 
 /// Main screen with persistent bottom navigation
 class MainScreen extends StatefulWidget {
@@ -55,8 +57,10 @@ class _MainScreenState extends State<MainScreen> {
         }
       });
     } else {
+      // Adjust index for PageView (skip index 2 which is the add button)
+      final pageIndex = index > 2 ? index - 1 : index;
       _pageController.animateToPage(
-        index,
+        pageIndex,
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
       );
@@ -83,8 +87,11 @@ class _MainScreenState extends State<MainScreen> {
             child: const TransactionsScreen(showBottomNav: false),
           ),
           
-          // Budget Tab (placeholder)
-          const Center(child: Text('Budget - Coming Soon')),
+          // Budget Tab
+          ChangeNotifierProvider(
+            create: (_) => BudgetViewModel(),
+            child: const BudgetScreen(),
+          ),
           
           // Settings Tab (placeholder)
           const Center(child: Text('Settings - Coming Soon')),
@@ -131,7 +138,7 @@ class _MainScreenState extends State<MainScreen> {
     
     return Expanded(
       child: InkWell(
-        onTap: () => _onNavItemTapped(pageIndex),
+        onTap: () => _onNavItemTapped(index),
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 8),
           child: Column(

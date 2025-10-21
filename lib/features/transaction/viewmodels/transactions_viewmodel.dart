@@ -74,19 +74,9 @@ class TransactionsViewModel extends ChangeNotifier {
       await _loadData();
       _applyFilters();
       
-      // Auto-scan for new SMS transactions when opening transactions screen
-      debugPrint('🔄 Auto-scanning for new SMS transactions...');
-      final newCount = await _smsRescanService.rescanAndImportNewTransactions();
-      
-      if (newCount > 0) {
-        debugPrint('✅ Auto-imported $newCount new transaction(s)!');
-        _newTransactionsCount = newCount;
-        // Reload transactions to include the new ones
-        await _loadData();
-        _applyFilters();
-      } else {
-        debugPrint('✓ No new transactions found');
-      }
+      // Note: SMS auto-scan removed from initialization to prevent lag
+      // Users can manually refresh to scan for new SMS transactions
+      debugPrint('✓ Transactions screen initialized (${_allTransactions.length} total transactions)');
     } catch (e) {
       debugPrint('Error initializing transactions: $e');
     } finally {

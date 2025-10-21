@@ -81,18 +81,9 @@ class HomeViewModel extends ChangeNotifier {
       await _loadWallets();
       await _loadRecentTransactions();
       
-      // Auto-scan for new SMS transactions on app launch
-      debugPrint('🔄 Auto-scanning for new SMS transactions...');
-      final newCount = await _smsRescanService.rescanAndImportNewTransactions();
-      
-      if (newCount > 0) {
-        debugPrint('✅ Auto-imported $newCount new transaction(s) on app launch!');
-        _newTransactionsCount = newCount;
-        // Reload transactions to include the new ones
-        await _loadRecentTransactions();
-      } else {
-        debugPrint('✓ No new transactions found');
-      }
+      // Note: SMS auto-scan removed from initialization to prevent lag
+      // Users can manually refresh to scan for new SMS transactions
+      debugPrint('✓ Home screen initialized (${_recentTransactions.length} transactions)');
     } catch (e) {
       debugPrint('Error initializing home screen: $e');
     } finally {
