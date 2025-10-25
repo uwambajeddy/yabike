@@ -62,6 +62,7 @@ class AppColors {
   static const Color blue = Color(0xFF42A5F5); // Informational elements
   static const Color lightGreen = Color(0xFFC5E1A5); // Success states
   static const Color yellow = Color(0xFFFFEB3B); // Warnings/highlights
+  static const Color softYellow = Color(0xFFFFD966); // Softer yellow for progress bars and UI accents
 
   // ==================== SEMANTIC COLOR ALIASES ====================
   
@@ -103,7 +104,7 @@ class AppColors {
 
   // Budget Status Colors
   static const Color budgetGood = primary500;
-  static const Color budgetWarning = yellow;
+  static const Color budgetWarning = softYellow;
   static const Color budgetCritical = danger500;
 
   // Wallet Type Colors

@@ -9,9 +9,12 @@ class BudgetViewModel extends ChangeNotifier {
 
   bool _isLoading = false;
   List<Budget> _budgets = [];
+  Budget? _editingBudget; // Budget being edited
 
   bool get isLoading => _isLoading;
   List<Budget> get budgets => _budgets;
+  Budget? get editingBudget => _editingBudget;
+  bool get isEditMode => _editingBudget != null;
   
   bool get hasBudgets => _budgets.isNotEmpty;
   
@@ -120,5 +123,17 @@ class BudgetViewModel extends ChangeNotifier {
   /// Get near limit budgets (>80%)
   List<Budget> getNearLimitBudgets() {
     return _budgets.where((b) => b.percentageUsed >= 80 && !b.isExceeded).toList();
+  }
+
+  /// Set budget for editing
+  void setEditingBudget(Budget budget) {
+    _editingBudget = budget;
+    notifyListeners();
+  }
+
+  /// Clear editing budget
+  void clearEditingBudget() {
+    _editingBudget = null;
+    notifyListeners();
   }
 }

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
 import '../viewmodels/budget_viewmodel.dart';
-import 'create_budget_stepper_screen.dart';
+import 'create_budget_screen.dart';
 import 'budget_detail_screen.dart';
 import 'package:intl/intl.dart';
 
@@ -45,10 +45,14 @@ class _BudgetScreenState extends State<BudgetScreen> {
               ),
             ),
             onPressed: () async {
+              final existingViewModel = context.read<BudgetViewModel>();
               final result = await Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const CreateBudgetStepperScreen(),
+                  builder: (context) => ListenableProvider.value(
+                    value: existingViewModel,
+                    child: const CreateBudgetStepperScreen(),
+                  ),
                 ),
               );
               if (result == true && mounted) {
@@ -157,10 +161,14 @@ class _BudgetScreenState extends State<BudgetScreen> {
                 const SizedBox(height: 12),
                 ElevatedButton.icon(
                   onPressed: () async {
+                    final existingViewModel = context.read<BudgetViewModel>();
                     final result = await Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => const CreateBudgetStepperScreen(),
+                        builder: (context) => ListenableProvider.value(
+                          value: existingViewModel,
+                          child: const CreateBudgetStepperScreen(),
+                        ),
                       ),
                     );
                     if (result == true && mounted) {
@@ -282,10 +290,14 @@ class _BudgetScreenState extends State<BudgetScreen> {
     
     return InkWell(
       onTap: () async {
+        final existingViewModel = context.read<BudgetViewModel>();
         final result = await Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => const CreateBudgetStepperScreen(),
+            builder: (context) => ListenableProvider.value(
+              value: existingViewModel,
+              child: const CreateBudgetStepperScreen(),
+            ),
           ),
         );
         if (result == true && mounted) {
@@ -532,7 +544,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      DateFormat('dd MMMM yyyy').format(budget.endDate),
+                      DateFormat('dd MMM yyyy').format(budget.endDate),
                       style: theme.textTheme.bodyMedium?.copyWith(
                         fontWeight: FontWeight.w600,
                       ),

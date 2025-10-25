@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
-import '../../../core/constants/app_strings.dart';
 import '../../../data/models/currency_model.dart';
 import '../viewmodels/create_wallet_viewmodel.dart';
 import 'wallet_balance_screen.dart';

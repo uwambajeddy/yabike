@@ -3,23 +3,18 @@ import 'package:provider/provider.dart';
 import '../../features/splash/screens/splash_screen.dart';
 import '../../features/onboarding/screens/onboarding_screen.dart';
 import '../../features/main/screens/main_screen.dart';
-import '../../features/home/screens/home_screen.dart';
-import '../../features/home/viewmodels/home_viewmodel.dart';
 import '../../features/wallet/screens/wallet_name_screen.dart';
 import '../../features/wallet/viewmodels/create_wallet_viewmodel.dart';
 import '../../features/sms_integration/screens/sms_terms_screen.dart';
 import '../../features/sms_integration/screens/sms_loading_screen.dart';
 import '../../features/sms_integration/viewmodels/sms_integration_viewmodel.dart';
 import '../../features/transaction/screens/add_transaction_screen.dart';
-import '../../features/transaction/screens/transactions_screen.dart';
 import '../../features/transaction/screens/transaction_detail_screen.dart';
 import '../../features/transaction/viewmodels/add_transaction_viewmodel.dart';
-import '../../features/transaction/viewmodels/transactions_viewmodel.dart';
 import '../../features/transaction/viewmodels/transaction_detail_viewmodel.dart';
 import '../../data/models/transaction_model.dart';
-import '../../features/budget/screens/add_budget_screen.dart';
-import '../../features/budget/viewmodels/add_budget_viewmodel.dart';
-import '../../data/models/budget_model.dart';
+import '../../features/settings/screens/settings_screen.dart';
+import '../../features/settings/screens/categories_screen.dart';
 
 /// App route names
 class AppRoutes {
@@ -61,12 +56,11 @@ class AppRoutes {
   // Budgets
   static const String budgets = '/budgets';
   static const String budgetDetail = '/budgets/detail';
-  static const String createBudget = '/budgets/create';
-  static const String editBudget = '/budgets/edit';
   static const String selectCategory = '/budgets/select-category';
 
   // Settings
   static const String settings = '/settings';
+  static const String categories = '/settings/categories';
   static const String profile = '/settings/profile';
   static const String security = '/settings/security';
   static const String appearance = '/settings/appearance';
@@ -189,29 +183,15 @@ class RouteGenerator {
           settings: settings,
         );
 
-      case AppRoutes.createBudget:
+      case AppRoutes.settings:
         return MaterialPageRoute(
-          builder: (_) => ChangeNotifierProvider(
-            create: (_) => AddBudgetViewModel(),
-            child: const AddBudgetScreen(),
-          ),
+          builder: (_) => const SettingsScreen(),
           settings: settings,
         );
 
-      case AppRoutes.editBudget:
-        final budget = settings.arguments as Budget?;
-        if (budget == null) {
-          return MaterialPageRoute(
-            builder: (_) => const Scaffold(
-              body: Center(child: Text('Budget not found')),
-            ),
-          );
-        }
+      case AppRoutes.categories:
         return MaterialPageRoute(
-          builder: (_) => ChangeNotifierProvider(
-            create: (_) => AddBudgetViewModel(),
-            child: AddBudgetScreen(budget: budget),
-          ),
+          builder: (_) => const CategoriesScreen(),
           settings: settings,
         );
 

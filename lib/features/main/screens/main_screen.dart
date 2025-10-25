@@ -6,8 +6,9 @@ import '../../home/screens/home_screen.dart';
 import '../../home/viewmodels/home_viewmodel.dart';
 import '../../transaction/screens/transactions_screen.dart';
 import '../../transaction/viewmodels/transactions_viewmodel.dart';
-import '../../budget/screens/budget_screen.dart';
+import '../../budget/screens/budget_goals_tab_screen.dart';
 import '../../budget/viewmodels/budget_viewmodel.dart';
+import '../../settings/screens/settings_screen.dart';
 
 /// Main screen with persistent bottom navigation
 class MainScreen extends StatefulWidget {
@@ -87,14 +88,14 @@ class _MainScreenState extends State<MainScreen> {
             child: const TransactionsScreen(showBottomNav: false),
           ),
           
-          // Budget Tab
+          // Budget & Goals Tab
           ChangeNotifierProvider(
             create: (_) => BudgetViewModel(),
-            child: const BudgetScreen(),
+            child: const BudgetGoalsTabScreen(),
           ),
           
-          // Settings Tab (placeholder)
-          const Center(child: Text('Settings - Coming Soon')),
+          // Settings Tab
+          const SettingsScreen(),
         ],
       ),
       bottomNavigationBar: _buildBottomNavigation(),
