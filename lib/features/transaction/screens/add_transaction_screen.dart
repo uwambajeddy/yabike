@@ -278,7 +278,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
           if (viewModel.selectedWallet != null && viewModel.type != null) ...[
             const SizedBox(height: 16),
             
-            if (viewModel.category.isNotEmpty) ...[
+            if (viewModel.selectedCategory != null) ...[
               // Show selected category with edit button
               GestureDetector(
                 onTap: () => _showCategoryBottomSheet(context, viewModel),
@@ -308,7 +308,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              viewModel.category,
+                              viewModel.selectedCategory!.name,
                               style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
@@ -442,10 +442,10 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
             Expanded(
               child: ListView.builder(
                 padding: const EdgeInsets.all(16),
-                itemCount: viewModel.categories.length,
+                itemCount: viewModel.filteredCategories.length,
                 itemBuilder: (context, index) {
-                  final category = viewModel.categories[index];
-                  final isSelected = viewModel.category == category;
+                  final category = viewModel.filteredCategories[index];
+                  final isSelected = viewModel.selectedCategory?.id == category.id;
                   
                   return GestureDetector(
                     onTap: () {
@@ -465,6 +465,21 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                       ),
                       child: Row(
                         children: [
+                          // Category icon
+                          Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: category.color.withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(
+                              category.icon,
+                              color: category.color,
+                              size: 20,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
                           if (isSelected) ...[
                             Container(
                               width: 4,
@@ -477,12 +492,29 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                             const SizedBox(width: 12),
                           ],
                           Expanded(
-                            child: Text(
-                              category,
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                              ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  category.name,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                                  ),
+                                ),
+                                if (category.description.isNotEmpty) ...[
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    category.description,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey.shade600,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ],
                             ),
                           ),
                           if (isSelected)
@@ -1092,7 +1124,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                 const SizedBox(height: 12),
                 
                 // Details
-                _buildReviewRow('Categories', viewModel.category.isEmpty ? 'Not selected' : viewModel.category),
+                _buildReviewRow('Categories', viewModel.selectedCategory?.name ?? 'Not selected'),
                 const SizedBox(height: 12),
                 _buildReviewRow('Type', 'Manual'),
                 const SizedBox(height: 12),
@@ -1220,7 +1252,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   bool _canProceed(AddTransactionViewModel viewModel) {
     switch (_currentPage) {
       case 0: // Wallet & Categories
-        return viewModel.selectedWallet != null && viewModel.category.isNotEmpty;
+        return viewModel.selectedWallet != null && viewModel.selectedCategory != null;
       case 1: // Amount
         return viewModel.amount > 0;
       case 2: // Date & Time

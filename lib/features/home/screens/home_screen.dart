@@ -73,7 +73,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          '✨ Imported ${viewModel.newTransactionsCount} new transaction${viewModel.newTransactionsCount > 1 ? 's' : ''}!',
+                          'Imported ${viewModel.newTransactionsCount} new transaction${viewModel.newTransactionsCount > 1 ? 's' : ''}!',
                           style: const TextStyle(fontWeight: FontWeight.w500),
                         ),
                       ),

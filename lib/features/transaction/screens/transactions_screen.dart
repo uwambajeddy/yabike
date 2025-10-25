@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/routes/app_routes.dart';
+import '../../../data/models/transaction_model.dart';
 import '../../home/widgets/transaction_list_item.dart';
 import '../viewmodels/transactions_viewmodel.dart';
 import 'package:intl/intl.dart';
@@ -126,7 +127,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          '✨ Imported ${viewModel.newTransactionsCount} new transaction${viewModel.newTransactionsCount > 1 ? 's' : ''}!',
+                          'Imported ${viewModel.newTransactionsCount} new transaction${viewModel.newTransactionsCount > 1 ? 's' : ''}!',
                           style: const TextStyle(fontWeight: FontWeight.w500),
                         ),
                       ),
@@ -142,50 +143,64 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
 
           return RefreshIndicator(
             onRefresh: viewModel.refresh,
-            child: SingleChildScrollView(
+            child: CustomScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Search bar
-                  if (_showSearch) ...[
-                    _buildSearchBar(viewModel),
-                    const SizedBox(height: 16),
-                  ],
+              slivers: [
+                // Header widgets (search, filters, cards) as non-scrollable slivers
+                SliverPadding(
+                  padding: const EdgeInsets.all(16),
+                  sliver: SliverList(
+                    delegate: SliverChildListDelegate([
+                      // Search bar
+                      if (_showSearch) ...[
+                        _buildSearchBar(viewModel),
+                        const SizedBox(height: 16),
+                      ],
 
-                  // Active filters chips
-                  if (viewModel.hasActiveFilters) ...[
-                    _buildActiveFiltersChips(viewModel),
-                    const SizedBox(height: 16),
-                  ],
+                      // Active filters chips
+                      if (viewModel.hasActiveFilters) ...[
+                        _buildActiveFiltersChips(viewModel),
+                        const SizedBox(height: 16),
+                      ],
 
-                  // Date range selector
-                  _buildDateRangeSelector(viewModel),
-                  const SizedBox(height: 16),
+                      // Date range selector
+                      _buildDateRangeSelector(viewModel),
+                      const SizedBox(height: 16),
 
-                  // Net Balance Card
-                  _buildNetBalanceCard(viewModel),
-                  const SizedBox(height: 16),
+                      // Net Balance Card
+                      _buildNetBalanceCard(viewModel),
+                      const SizedBox(height: 16),
 
-                  // Income/Expenses Cards
-                  _buildIncomeExpenseCards(viewModel),
-                  const SizedBox(height: 24),
+                      // Income/Expenses Cards
+                      _buildIncomeExpenseCards(viewModel),
+                      const SizedBox(height: 24),
+                    ]),
+                  ),
+                ),
 
-                  // Transaction List
-                  _buildTransactionList(viewModel),
+                // Transaction List with TRUE virtual scrolling
+                _buildTransactionListSliver(viewModel),
 
-                  const SizedBox(height: 24),
+                // Footer sections
+                SliverPadding(
+                  padding: const EdgeInsets.all(16),
+                  sliver: SliverList(
+                    delegate: SliverChildListDelegate([
+                      const SizedBox(height: 24),
 
-                  // Categories Section
-                  _buildCategoriesSection(viewModel),
+                      // Categories Section
+                      _buildCategoriesSection(viewModel),
 
-                  const SizedBox(height: 24),
+                      const SizedBox(height: 24),
 
-                  // Rank Section
-                  _buildRankSection(viewModel),
-                ],
-              ),
+                      // Rank Section
+                      _buildRankSection(viewModel),
+                      
+                      const SizedBox(height: 24),
+                    ]),
+                  ),
+                ),
+              ],
             ),
           );
         },
@@ -428,12 +443,14 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     );
   }
 
-  Widget _buildTransactionList(TransactionsViewModel viewModel) {
+  Widget _buildTransactionListSliver(TransactionsViewModel viewModel) {
     if (viewModel.transactions.isEmpty) {
-      return const Center(
-        child: Padding(
-          padding: EdgeInsets.all(32),
-          child: Text('No transactions yet'),
+      return SliverToBoxAdapter(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Text('No transactions yet'),
+          ),
         ),
       );
     }
@@ -441,89 +458,91 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     final grouped = viewModel.groupedTransactions;
     final dateKeys = grouped.keys.toList();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            const Text(
-              'Transaction List',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: AppColors.primary,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                '${viewModel.transactions.length}',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        
-        // Grouped transactions by date with ListView.builder
-        ListView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: dateKeys.length,
-          itemBuilder: (context, index) {
-            final dateKey = dateKeys[index];
-            final transactions = grouped[dateKey]!;
+    // Flatten the grouped structure into a single list for efficient rendering
+    final List<dynamic> flatList = [];
+    
+    // Add header first
+    flatList.add({'type': 'list_header'});
+    
+    // Add date headers and transactions
+    for (final dateKey in dateKeys) {
+      flatList.add({'type': 'date_header', 'text': dateKey});
+      flatList.addAll(grouped[dateKey]!.map((tx) => {'type': 'transaction', 'data': tx}));
+    }
+
+    return SliverPadding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      sliver: SliverList(
+        // Use SliverChildBuilderDelegate for TRUE lazy loading
+        delegate: SliverChildBuilderDelegate(
+          (context, index) {
+            final item = flatList[index];
             
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Date header
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 12, top: 8),
-                  child: Text(
-                    dateKey,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey.shade600,
-                      fontWeight: FontWeight.w600,
+            if (item['type'] == 'list_header') {
+              // Transaction list header with count
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: Row(
+                  children: [
+                    const Text(
+                      'Transaction List',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        '${viewModel.transactions.length}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            } else if (item['type'] == 'date_header') {
+              // Date header
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12, top: 8),
+                child: Text(
+                  item['text'] as String,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey.shade600,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
-                // Transactions for this date
-                ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: transactions.length,
-                  itemBuilder: (context, txIndex) {
-                    final transaction = transactions[txIndex];
-                    return TransactionListItem(
-                      transaction: transaction,
-                      walletName: viewModel.getWalletName(transaction.walletId),
-                      emoji: viewModel.getTransactionEmoji(transaction.id),
-                      onTap: () {
-                        Navigator.pushNamed(
-                          context,
-                          AppRoutes.transactionDetail,
-                          arguments: transaction,
-                        );
-                      },
-                    );
-                  },
-                ),
-                const SizedBox(height: 8),
-              ],
-            );
+              );
+            } else {
+              // Transaction item
+              final transaction = item['data'] as Transaction;
+              return TransactionListItem(
+                transaction: transaction,
+                walletName: viewModel.getWalletName(transaction.walletId),
+                emoji: viewModel.getTransactionEmoji(transaction.id),
+                onTap: () {
+                  Navigator.pushNamed(
+                    context,
+                    AppRoutes.transactionDetail,
+                    arguments: transaction,
+                  );
+                },
+              );
+            }
           },
+          childCount: flatList.length,
         ),
-      ],
+      ),
     );
   }
 
