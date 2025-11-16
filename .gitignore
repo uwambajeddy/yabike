@@ -43,3 +43,7 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Secrets and sensitive configuration files
+/lib/core/config/secrets.dart           # Contains API keys and secrets - NEVER COMMIT
+/lib/core/config/supabase_config.dart   # Supabase config - contains sensitive keys
