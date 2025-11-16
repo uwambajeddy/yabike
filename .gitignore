@@ -47,3 +47,4 @@ app.*.map.json
 # Secrets and sensitive configuration files
 /lib/core/config/secrets.dart           # Contains API keys and secrets - NEVER COMMIT
 /lib/core/config/supabase_config.dart   # Supabase config - contains sensitive keys
+lib/core/config/secrets.dart
