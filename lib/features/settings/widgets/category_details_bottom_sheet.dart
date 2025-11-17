@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../data/models/category_model.dart';
-import '../../../../data/services/category_service.dart';
 import 'stat_card.dart';
 
 class CategoryDetailsBottomSheet extends StatelessWidget {

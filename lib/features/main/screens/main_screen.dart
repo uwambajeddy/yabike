@@ -6,7 +6,7 @@ import '../../home/screens/home_screen.dart';
 import '../../home/viewmodels/home_viewmodel.dart';
 import '../../transaction/screens/transactions_screen.dart';
 import '../../transaction/viewmodels/transactions_viewmodel.dart';
-import '../../budget/screens/budget_goals_tab_screen.dart';
+import '../../budget/screens/budget_list_screen.dart';
 import '../../budget/viewmodels/budget_viewmodel.dart';
 import '../../settings/screens/settings_screen.dart';
 
@@ -88,10 +88,10 @@ class _MainScreenState extends State<MainScreen> {
             child: const TransactionsScreen(showBottomNav: false),
           ),
           
-          // Budget & Goals Tab
+          // Budget Tab
           ChangeNotifierProvider(
             create: (_) => BudgetViewModel(),
-            child: const BudgetGoalsTabScreen(),
+            child: const BudgetListScreen(),
           ),
           
           // Settings Tab

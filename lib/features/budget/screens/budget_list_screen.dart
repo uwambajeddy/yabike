@@ -27,7 +27,28 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     
-    return Consumer<BudgetViewModel>(
+    return Scaffold(
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        title: Text('Budgeting', style: theme.appBarTheme.titleTextStyle),
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.file_download_outlined),
+            onPressed: () {
+              // TODO: Export budgets functionality
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.search),
+            onPressed: () {
+              // TODO: Search budgets functionality
+            },
+          ),
+        ],
+      ),
+      body: Consumer<BudgetViewModel>(
       builder: (context, viewModel, child) {
         if (viewModel.isLoading) {
           return const Center(child: CircularProgressIndicator());
@@ -75,6 +96,7 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
           ),
         );
       },
+    ),
     );
   }
 
@@ -90,44 +112,41 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
       child: Row(
         children: [
           // Piggy bank illustration
-          Image.asset(
-            'assets/images/budget-planner-and-money.png',
-            width: 80,
-            height: 80,
-            fit: BoxFit.contain,
+               SizedBox(
+            width: 100,
+            height: 100,
+            child: Image.asset(
+              'assets/images/budget-planner-and-money.png',
+              fit: BoxFit.contain,
+            ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 20),
           
           // Text and button
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+               Text(
                   'Visualize Your Finances!',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    color: const Color(0xFF2D6A4F),
                   ),
                 ),
                 const SizedBox(height: 12),
-                ElevatedButton(
+                ElevatedButton.icon(
                   onPressed: () => _createNewBudget(context),
+                  icon: const Icon(Icons.add, size: 18),
+                  label: const Text('Create a Budget Today'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.softYellow, // Yellow button
-                    foregroundColor: Colors.black87,
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    backgroundColor: const Color(0xFFFFD966),
+                    foregroundColor: const Color(0xFF2D6A4F),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    textStyle: theme.textTheme.labelMedium,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(24),
                     ),
-                  ),
-                  child: const Text(
-                    'Create a Budget Today',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                    ),
+                    elevation: 0,
                   ),
                 ),
               ],
@@ -147,59 +166,63 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Circular icon with question marks
+            /// Piggy bank with question marks 
             Stack(
-              alignment: Alignment.center,
-              children: [
-                Container(
-                  width: 120,
-                  height: 120,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE5FCDC), // Light green background
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.account_balance_wallet_outlined,
-                    size: 50,
-                    color: AppColors.primary,
+            alignment: Alignment.center,
+            children: [
+              Container(
+                width: 120,
+                height: 120,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFE5FCDC),
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const Icon(
+                Icons.savings,
+                size: 64,
+                color: AppColors.primary,
+              ),
+              Positioned(
+                top: 0,
+                right: 20,
+                child: Text(
+                  '??',
+                  style: theme.textTheme.displaySmall?.copyWith(
+                    color: AppColors.primary.withOpacity(0.6),
                   ),
                 ),
-                // Question marks around the icon
-                Positioned(
-                  top: 10,
-                  right: 10,
-                  child: Text(
-                    '??',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.grey.shade400,
-                    ),
-                  ),
-                ),
-                Positioned(
-                  bottom: 10,
-                  left: 10,
-                  child: Text(
-                    '??',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.grey.shade400,
-                    ),
-                  ),
-                ),
-              ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'You don\'t have any budgets at the moment.',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: AppColors.textSecondary,
             ),
-            const SizedBox(height: 24),
-            
-            Text(
-              "You don't have any budgets at the moment.",
-              style: theme.textTheme.bodyLarge?.copyWith(
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.lightbulb_outline, 
+                size: 16, 
                 color: AppColors.textSecondary,
               ),
-              textAlign: TextAlign.center,
-            ),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  'Try clicking the button above,\nor click here to create a new one.',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: AppColors.textHint,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ],
+          ),
             const SizedBox(height: 40),
           ],
         ),
