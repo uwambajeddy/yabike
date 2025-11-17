@@ -1,9 +1,256 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../data/services/backup_service.dart';
+import '../../backup/widgets/backup_menu_tile.dart';
 import 'categories_screen.dart';
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkAuthenticationOnEntry();
+    });
+  }
+
+  /// Check if user is authenticated when accessing settings
+  void _checkAuthenticationOnEntry() {
+    final backupService = context.read<BackupService>();
+    
+    // If user is not signed in, show authentication dialog
+    if (backupService.currentUser == null) {
+      _showAuthenticationRequired();
+    }
+  }
+
+  /// Show authentication required dialog with options to sign in or continue without account
+  Future<void> _showAuthenticationRequired() async {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.security, color: AppColors.primary),
+              SizedBox(width: 12),
+              Text('Sign In Recommended'),
+            ],
+          ),
+          content: const Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'To access all features in Settings, we recommend signing in with your account.',
+                style: TextStyle(fontSize: 16, height: 1.4),
+              ),
+              SizedBox(height: 16),
+              Text(
+                '• Backup your financial data securely',
+                style: TextStyle(color: AppColors.textSecondary),
+              ),
+              Text(
+                '• Sync settings across devices',
+                style: TextStyle(color: AppColors.textSecondary),
+              ),
+              Text(
+                '• Access cloud features',
+                style: TextStyle(color: AppColors.textSecondary),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                // User chooses to continue without signing in
+              },
+              child: const Text('Continue Without Account'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _showEmailAuthDialog();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+              ),
+              child: const Text('Sign In'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  /// Show email authentication dialog (sign in/sign up)
+  Future<void> _showEmailAuthDialog() async {
+    final backupService = context.read<BackupService>();
+    final TextEditingController emailController = TextEditingController();
+    final TextEditingController passwordController = TextEditingController();
+    bool isSignUp = false;
+    bool isLoading = false;
+
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: Text(isSignUp ? 'Create Account' : 'Sign In'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      isSignUp 
+                        ? 'Create an account to access all settings features.' 
+                        : 'Sign in to access your account settings.',
+                      style: const TextStyle(fontSize: 14),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: const InputDecoration(
+                        labelText: 'Email Address',
+                        hintText: 'example@email.com',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.email),
+                      ),
+                      autofocus: true,
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: passwordController,
+                      obscureText: true,
+                      decoration: const InputDecoration(
+                        labelText: 'Password',
+                        hintText: 'Enter password',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.lock),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextButton(
+                      onPressed: () {
+                        setDialogState(() {
+                          isSignUp = !isSignUp;
+                        });
+                      },
+                      child: Text(
+                        isSignUp 
+                          ? 'Already have an account? Sign In' 
+                          : 'Don\'t have an account? Sign Up',
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isLoading ? null : () {
+                    Navigator.of(context).pop();
+                  },
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: isLoading ? null : () async {
+                    final email = emailController.text.trim();
+                    final password = passwordController.text.trim();
+                    
+                    if (email.isEmpty || !email.contains('@')) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Please enter a valid email address'),
+                          backgroundColor: AppColors.error,
+                        ),
+                      );
+                      return;
+                    }
+                    
+                    if (password.length < 6) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Password must be at least 6 characters'),
+                          backgroundColor: AppColors.error,
+                        ),
+                      );
+                      return;
+                    }
+
+                    setDialogState(() {
+                      isLoading = true;
+                    });
+
+                    bool success;
+                    if (isSignUp) {
+                      success = await backupService.signUpWithEmail(email, password);
+                      if (success) {
+                        if (mounted) {
+                          Navigator.of(context).pop();
+                          setState(() {}); // Refresh the settings screen
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Account created! Please check your email to verify.'),
+                              backgroundColor: AppColors.success,
+                            ),
+                          );
+                        }
+                        return;
+                      }
+                    } else {
+                      success = await backupService.signInWithEmail(email, password);
+                    }
+
+                    setDialogState(() {
+                      isLoading = false;
+                    });
+
+                    if (success && mounted) {
+                      Navigator.of(context).pop();
+                      setState(() {}); // Refresh the settings screen
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Successfully signed in as: $email'),
+                          backgroundColor: AppColors.success,
+                        ),
+                      );
+                    } else if (mounted) {
+                      final errorMessage = backupService.status.lastError ?? 'Authentication failed';
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(errorMessage),
+                          backgroundColor: AppColors.error,
+                        ),
+                      );
+                    }
+                  },
+                  child: isLoading 
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Text(isSignUp ? 'Sign Up' : 'Sign In'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -15,81 +262,151 @@ class SettingsScreen extends StatelessWidget {
         title: Text('Settings', style: theme.appBarTheme.titleTextStyle),
         elevation: 0,
         backgroundColor: Colors.transparent,
+        actions: [
+          // Sign out button when user is authenticated
+          Consumer<BackupService>(
+            builder: (context, backupService, child) {
+              if (backupService.currentUser != null) {
+                return IconButton(
+                  icon: const Icon(Icons.logout),
+                  tooltip: 'Sign Out',
+                  onPressed: () => _showSignOutDialog(backupService),
+                );
+              }
+              return const SizedBox.shrink();
+            },
+          ),
+        ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Profile Section
-            _buildProfileSection(context),
-            const SizedBox(height: 24),
-            
-            // Settings Menu
-            _buildSettingsMenu(context),
-            const SizedBox(height: 24),
-            
-            // App Info Section
-            _buildAppInfoSection(context),
-          ],
-        ),
+      body: Consumer<BackupService>(
+        builder: (context, backupService, child) {
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Profile Section with authentication status
+                _buildProfileSection(context, backupService),
+                const SizedBox(height: 24),
+                
+                // Settings Menu
+                _buildSettingsMenu(context),
+                const SizedBox(height: 24),
+                
+                // App Info Section
+                _buildAppInfoSection(context),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
 
-  Widget _buildProfileSection(BuildContext context) {
+  /// Show sign out confirmation dialog
+  Future<void> _showSignOutDialog(BackupService backupService) async {
+    return showDialog<void>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Sign Out'),
+          content: const Text('Are you sure you want to sign out? You will need to sign in again to access cloud features.'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                await backupService.signOut();
+                if (mounted) {
+                  Navigator.of(context).pop();
+                  setState(() {}); // Refresh the UI
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Successfully signed out'),
+                      backgroundColor: AppColors.success,
+                    ),
+                  );
+                }
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+              child: const Text('Sign Out'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildProfileSection(BuildContext context, BackupService backupService) {
     final theme = Theme.of(context);
+    final isSignedIn = backupService.currentUser != null;
+    final userEmail = backupService.currentUser?.email ?? 'Not signed in';
     
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.primary100,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.primary200),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              color: AppColors.primary,
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.person,
-              color: Colors.white,
-              size: 30,
-            ),
+    return GestureDetector(
+      onTap: () {
+        if (isSignedIn) {
+          _showSignOutDialog(backupService);
+        } else {
+          _showEmailAuthDialog();
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: isSignedIn ? AppColors.primary100 : AppColors.warning.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSignedIn ? AppColors.primary200 : AppColors.warning.withOpacity(0.3)
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'User Profile',
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.primary700,
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                color: isSignedIn ? AppColors.primary : AppColors.warning,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                isSignedIn ? Icons.account_circle : Icons.person_add,
+                color: Colors.white,
+                size: 30,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    isSignedIn ? 'Signed In' : 'Sign In Required',
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: isSignedIn ? AppColors.primary700 : AppColors.textPrimary,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Manage your account settings',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: AppColors.primary600,
+                  const SizedBox(height: 4),
+                  Text(
+                    isSignedIn ? userEmail : 'Tap to sign in and access all features',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: isSignedIn ? AppColors.primary600 : AppColors.textSecondary,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          Icon(
-            Icons.chevron_right,
-            color: AppColors.primary600,
-            size: 24,
-          ),
-        ],
+            Icon(
+              isSignedIn ? Icons.logout : Icons.arrow_forward_ios,
+              color: isSignedIn ? AppColors.primary600 : AppColors.textSecondary,
+              size: 24,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -172,7 +489,12 @@ class SettingsScreen extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 16),
-        ...menuItems.map((item) => _buildMenuItem(context, item)),
+        
+        // Backup Menu Tile (Special UI)
+        const BackupMenuTile(),
+        
+        // Regular menu items
+        ...menuItems.where((item) => item.title != 'Data Management').map((item) => _buildMenuItem(context, item)),
       ],
     );
   }
