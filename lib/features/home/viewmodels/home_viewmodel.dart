@@ -197,6 +197,14 @@ class HomeViewModel extends ChangeNotifier {
     return '$currency ${_formatNumber(totalExpenses)}';
   }
 
+  /// Get all transactions (filtered by selected wallet if applicable)
+  List<Transaction> getAllTransactionsForChart() {
+    if (_selectedWallet != null) {
+      return _transactionRepository.getTransactionsByWallet(_selectedWallet!.id);
+    }
+    return _transactionRepository.getAllTransactions();
+  }
+
   /// Format number with commas
   String _formatNumber(double number) {
     return number.toStringAsFixed(0).replaceAllMapped(

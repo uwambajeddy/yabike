@@ -6,6 +6,7 @@ import '../../../data/models/transaction_model.dart';
 import '../../home/widgets/transaction_list_item.dart';
 import '../viewmodels/transactions_viewmodel.dart';
 import 'package:intl/intl.dart';
+import 'package:fl_chart/fl_chart.dart';
 
 class TransactionsScreen extends StatefulWidget {
   final bool showBottomNav;
@@ -174,6 +175,14 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                       // Income/Expenses Cards
                       _buildIncomeExpenseCards(viewModel),
                       const SizedBox(height: 24),
+
+                      // Categories Section with Chart
+                      _buildCategoriesSection(viewModel),
+                      const SizedBox(height: 24),
+
+                      // Rank Section
+                      _buildRankSection(viewModel),
+                      const SizedBox(height: 24),
                     ]),
                   ),
                 ),
@@ -181,24 +190,9 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                 // Transaction List with TRUE virtual scrolling
                 _buildTransactionListSliver(viewModel),
 
-                // Footer sections
-                SliverPadding(
-                  padding: const EdgeInsets.all(16),
-                  sliver: SliverList(
-                    delegate: SliverChildListDelegate([
-                      const SizedBox(height: 24),
-
-                      // Categories Section
-                      _buildCategoriesSection(viewModel),
-
-                      const SizedBox(height: 24),
-
-                      // Rank Section
-                      _buildRankSection(viewModel),
-                      
-                      const SizedBox(height: 24),
-                    ]),
-                  ),
+                // Footer padding
+                const SliverPadding(
+                  padding: EdgeInsets.only(bottom: 24),
                 ),
               ],
             ),
@@ -547,32 +541,139 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   }
 
   Widget _buildCategoriesSection(TransactionsViewModel viewModel) {
+    final categoryStats = viewModel.getCategoryStats();
+    final expenseStats = categoryStats['expenses']!;
+    
+    // If no expense data, show empty state
+    if (expenseStats.isEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Expense Categories',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Center(
+            child: Container(
+              width: 200,
+              height: 200,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                shape: BoxShape.circle,
+              ),
+              child: const Center(
+                child: Text(
+                  'No expenses yet',
+                  style: TextStyle(color: Colors.grey),
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Categories',
+          'Expense Categories',
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
           ),
         ),
         const SizedBox(height: 16),
-        // Pie chart placeholder
-        Center(
-          child: Container(
-            width: 200,
-            height: 200,
-            decoration: BoxDecoration(
-              color: Colors.grey.shade100,
-              shape: BoxShape.circle,
-            ),
-            child: const Center(
-              child: Text(
-                'Chart',
-                style: TextStyle(color: Colors.grey),
+        
+        // Pie Chart
+        SizedBox(
+          height: 250,
+          child: Row(
+            children: [
+              // Chart
+              Expanded(
+                flex: 3,
+                child: PieChart(
+                  PieChartData(
+                    sectionsSpace: 2,
+                    centerSpaceRadius: 50,
+                    sections: expenseStats.asMap().entries.map((entry) {
+                      final stat = entry.value;
+                      final percentage = stat['percentage'] as double;
+                      final color = stat['color'] as Color;
+                      
+                      return PieChartSectionData(
+                        value: percentage,
+                        title: '${percentage.toStringAsFixed(0)}%',
+                        color: color,
+                        radius: 60,
+                        titleStyle: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      );
+                    }).toList(),
+                    pieTouchData: PieTouchData(
+                      touchCallback: (FlTouchEvent event, pieTouchResponse) {
+                        // Add interactivity here if needed
+                      },
+                    ),
+                  ),
+                ),
               ),
-            ),
+              
+              const SizedBox(width: 16),
+              
+              // Legend
+              Expanded(
+                flex: 2,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: expenseStats.take(5).map((stat) {
+                    final category = stat['category'] as String;
+                    final percentage = stat['percentage'] as double;
+                    final color = stat['color'] as Color;
+                    
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 12,
+                            height: 12,
+                            decoration: BoxDecoration(
+                              color: color,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              category,
+                              style: const TextStyle(fontSize: 12),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          Text(
+                            '${percentage.toStringAsFixed(0)}%',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ],
           ),
         ),
       ],

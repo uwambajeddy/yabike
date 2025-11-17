@@ -4,8 +4,11 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/routes/app_routes.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../data/models/wallet_model.dart';
+import '../../../data/models/transaction_model.dart';
 import '../viewmodels/home_viewmodel.dart';
 import '../widgets/transaction_list_item.dart';
+import 'package:fl_chart/fl_chart.dart';
+import 'package:intl/intl.dart';
 
 /// Main home screen/dashboard matching the design
 class HomeScreen extends StatefulWidget {
@@ -101,6 +104,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
                   // Income/Expenses Row
                   _buildIncomeExpenseCards(context, viewModel),
+                  const SizedBox(height: 24),
+
+                  // Last 7 Days Chart
+                  _buildLast7DaysChart(context, viewModel),
                   const SizedBox(height: 24),
 
                   // Transaction Section Header
@@ -296,6 +303,231 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildLast7DaysChart(BuildContext context, HomeViewModel viewModel) {
+    // Get last 7 days data
+    final now = DateTime.now();
+    final last7Days = List.generate(7, (index) {
+      return now.subtract(Duration(days: 6 - index));
+    });
+
+    // Calculate income and expenses for each day
+    final allTransactions = viewModel.getAllTransactionsForChart();
+
+    Map<String, double> dailyIncome = {};
+    Map<String, double> dailyExpenses = {};
+
+    for (var day in last7Days) {
+      final dateKey = DateFormat('yyyy-MM-dd').format(day);
+      dailyIncome[dateKey] = 0;
+      dailyExpenses[dateKey] = 0;
+    }
+
+    // Aggregate transactions
+    for (var transaction in allTransactions) {
+      final dateKey = DateFormat('yyyy-MM-dd').format(transaction.date);
+      if (dailyIncome.containsKey(dateKey)) {
+        if (transaction.type == 'credit') {
+          dailyIncome[dateKey] = (dailyIncome[dateKey] ?? 0) + transaction.amount;
+        } else {
+          dailyExpenses[dateKey] = (dailyExpenses[dateKey] ?? 0) + transaction.amount;
+        }
+      }
+    }
+
+    // Find max value for scaling
+    double maxValue = 0;
+    for (var day in last7Days) {
+      final dateKey = DateFormat('yyyy-MM-dd').format(day);
+      final income = dailyIncome[dateKey] ?? 0;
+      final expense = dailyExpenses[dateKey] ?? 0;
+      if (income > maxValue) maxValue = income;
+      if (expense > maxValue) maxValue = expense;
+    }
+
+    if (maxValue == 0) maxValue = 1000; // Default if no data
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Last 7 days',
+                style: TextStyle(
+                  color: Colors.black,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pushNamed(context, AppRoutes.transactions);
+                },
+                child: const Text(
+                  'View All',
+                  style: TextStyle(
+                    color: AppColors.primary,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          
+          // Bar Chart
+          SizedBox(
+            height: 200,
+            child: BarChart(
+              BarChartData(
+                alignment: BarChartAlignment.spaceAround,
+                maxY: maxValue * 1.2,
+                barTouchData: BarTouchData(enabled: false),
+                titlesData: FlTitlesData(
+                  show: true,
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      getTitlesWidget: (value, meta) {
+                        if (value.toInt() >= 0 && value.toInt() < 7) {
+                          final day = last7Days[value.toInt()];
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: Text(
+                              DateFormat('EEE').format(day).substring(0, 3),
+                              style: const TextStyle(
+                                color: Colors.black54,
+                                fontSize: 12,
+                              ),
+                            ),
+                          );
+                        }
+                        return const Text('');
+                      },
+                    ),
+                  ),
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 40,
+                      getTitlesWidget: (value, meta) {
+                        if (value == 0) return const Text('');
+                        return Text(
+                          '${(value / 1000).toStringAsFixed(0)}K',
+                          style: const TextStyle(
+                            color: Colors.black54,
+                            fontSize: 10,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                ),
+                gridData: FlGridData(
+                  show: true,
+                  drawVerticalLine: false,
+                  horizontalInterval: maxValue / 4,
+                  getDrawingHorizontalLine: (value) {
+                    return FlLine(
+                      color: Colors.grey.shade200,
+                      strokeWidth: 1,
+                      dashArray: [5, 5],
+                    );
+                  },
+                ),
+                borderData: FlBorderData(show: false),
+                barGroups: List.generate(7, (index) {
+                  final day = last7Days[index];
+                  final dateKey = DateFormat('yyyy-MM-dd').format(day);
+                  final income = dailyIncome[dateKey] ?? 0;
+                  final expense = dailyExpenses[dateKey] ?? 0;
+
+                  return BarChartGroupData(
+                    x: index,
+                    barRods: [
+                      BarChartRodData(
+                        toY: income,
+                        color: AppColors.income,
+                        width: 12,
+                        borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                      ),
+                      BarChartRodData(
+                        toY: expense,
+                        color: AppColors.expense,
+                        width: 12,
+                        borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                      ),
+                    ],
+                  );
+                }),
+              ),
+            ),
+          ),
+          
+          const SizedBox(height: 16),
+          
+          // Legend
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 12,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      color: AppColors.income,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  const Text(
+                    'Income',
+                    style: TextStyle(
+                      color: Colors.black87,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(width: 24),
+              Row(
+                children: [
+                  Container(
+                    width: 12,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      color: AppColors.expense,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  const Text(
+                    'Expenses',
+                    style: TextStyle(
+                      color: Colors.black87,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
