@@ -343,83 +343,11 @@ class TransactionsViewModel extends ChangeNotifier {
   }
 
   Color _getCategoryColor(String category) {
-    // Vibrant, diverse color palette for better chart visualization
     final categoryLower = category.toLowerCase();
-    
-    // Food & Dining
-    if (categoryLower.contains('food') || categoryLower.contains('dining') || 
-        categoryLower.contains('restaurant') || categoryLower.contains('grocery')) {
-      return const Color(0xFFFF6B6B); // Vibrant red-orange
-    }
-    
-    // Transportation
-    if (categoryLower.contains('transport') || categoryLower.contains('travel') || 
-        categoryLower.contains('fuel') || categoryLower.contains('car')) {
-      return const Color(0xFF4ECDC4); // Turquoise
-    }
-    
-    // Shopping & Entertainment
-    if (categoryLower.contains('shopping') || categoryLower.contains('entertainment') || 
-        categoryLower.contains('leisure')) {
-      return const Color(0xFFFFBE0B); // Golden yellow
-    }
-    
-    // Bills & Utilities
-    if (categoryLower.contains('bill') || categoryLower.contains('utility') || 
-        categoryLower.contains('electricity') || categoryLower.contains('water') || 
-        categoryLower.contains('internet')) {
-      return const Color(0xFF8338EC); // Vivid purple
-    }
-    
-    // Investment & Savings
-    if (categoryLower.contains('investment') || categoryLower.contains('saving') || 
-        categoryLower.contains('deposit')) {
-      return const Color(0xFF06D6A0); // Mint green
-    }
-    
-    // Transfer
-    if (categoryLower.contains('transfer')) {
-      return const Color(0xFF3A86FF); // Bright blue
-    }
-    
-    // Healthcare
-    if (categoryLower.contains('health') || categoryLower.contains('medical') || 
-        categoryLower.contains('pharmacy')) {
-      return const Color(0xFFEF476F); // Rose pink
-    }
-    
-    // Education
-    if (categoryLower.contains('education') || categoryLower.contains('school') || 
-        categoryLower.contains('course')) {
-      return const Color(0xFF118AB2); // Deep blue
-    }
-    
-    // Payment & Others
-    if (categoryLower.contains('payment')) {
-      return const Color(0xFFFF9F1C); // Bright orange
-    }
-    
-    // Adjustment
-    if (categoryLower.contains('adjustment')) {
-      return const Color(0xFF7209B7); // Deep purple
-    }
-    
-    // Refund
-    if (categoryLower.contains('refund')) {
-      return const Color(0xFF06FFA5); // Neon green
-    }
-    
-    // Default fallback colors (cycling through vibrant palette)
-    final defaultColors = [
-      const Color(0xFFFF006E), // Hot pink
-      const Color(0xFF00B4D8), // Sky blue
-      const Color(0xFFFB5607), // Burnt orange
-      const Color(0xFFCCFF00), // Lime
-      const Color(0xFF9D4EDD), // Lavender
-    ];
-    
-    // Use category name hash to consistently assign color
-    final hash = category.hashCode.abs();
-    return defaultColors[hash % defaultColors.length];
+    if (categoryLower.contains('food')) return const Color(0xFFFFB74D);
+    if (categoryLower.contains('transport')) return const Color(0xFF42A5F5);
+    if (categoryLower.contains('shopping')) return const Color(0xFFAB47BC);
+    if (categoryLower.contains('investment')) return const Color(0xFF66BB6A);
+    return const Color(0xFF78909C);
   }
 }

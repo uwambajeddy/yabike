@@ -683,204 +683,105 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   Widget _buildRankSection(TransactionsViewModel viewModel) {
     final categoryStats = viewModel.getCategoryStats();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Top Categories',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 16),
-        
-        // Income section
-        if (categoryStats['income']!.isNotEmpty) ...[
-          Row(
-            children: [
-              Container(
-                width: 4,
-                height: 16,
-                decoration: BoxDecoration(
-                  color: AppColors.income,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(width: 8),
-              const Text(
-                'Top Income Sources',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          ...categoryStats['income']!.asMap().entries.map((entry) {
-            final index = entry.key;
-            final stat = entry.value;
-            return _buildModernRankCard(
-              index + 1,
-              stat['category'] as String,
-              stat['percentage'] as double,
-              stat['amount'] as double,
-              AppColors.income,
-              viewModel.currency,
-            );
-          }).toList(),
-          const SizedBox(height: 20),
-        ],
-        
-        // Expenses section
-        if (categoryStats['expenses']!.isNotEmpty) ...[
-          Row(
-            children: [
-              Container(
-                width: 4,
-                height: 16,
-                decoration: BoxDecoration(
-                  color: AppColors.expense,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(width: 8),
-              const Text(
-                'Top Expenses',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          ...categoryStats['expenses']!.asMap().entries.map((entry) {
-            final index = entry.key;
-            final stat = entry.value;
-            return _buildModernRankCard(
-              index + 1,
-              stat['category'] as String,
-              stat['percentage'] as double,
-              stat['amount'] as double,
-              AppColors.expense,
-              viewModel.currency,
-            );
-          }).toList(),
-        ],
-      ],
-    );
-  }
-
-  Widget _buildModernRankCard(int rank, String category, double percentage, double amount, Color color, String currency) {
-    // Medal icons for top 3
-    String getMedalIcon(int rank) {
-      switch (rank) {
-        case 1: return '🥇';
-        case 2: return '🥈';
-        case 3: return '🥉';
-        default: return '$rank';
-      }
-    }
-
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: rank == 1 ? color.withOpacity(0.3) : Colors.grey.shade200,
-          width: rank == 1 ? 2 : 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        border: Border.all(color: Colors.grey.shade300),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              // Medal/Rank
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Center(
-                  child: Text(
-                    getMedalIcon(rank),
-                    style: TextStyle(
-                      fontSize: rank <= 3 ? 18 : 14,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              
-              // Category name
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      category,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black87,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '$currency ${_formatAmount(amount)}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              
-              // Percentage
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: color,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  '${percentage.toStringAsFixed(0)}%',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ],
+          const Text(
+            'Rank',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
           ),
+          const SizedBox(height: 16),
           
-          const SizedBox(height: 12),
+          // Income section
+          const Text(
+            'Income',
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey,
+            ),
+          ),
+          const SizedBox(height: 8),
+          ...categoryStats['income']!.asMap().entries.map((entry) {
+            final index = entry.key;
+            final stat = entry.value;
+            return _buildRankItem(
+              index + 1,
+              stat['category'] as String,
+              stat['percentage'] as double,
+              AppColors.income,
+            );
+          }).toList(),
           
-          // Progress bar
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: percentage / 100,
-              minHeight: 6,
-              backgroundColor: Colors.grey.shade200,
-              valueColor: AlwaysStoppedAnimation<Color>(color),
+          const SizedBox(height: 16),
+          
+          // Expenses section
+          const Text(
+            'Expenses',
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey,
+            ),
+          ),
+          const SizedBox(height: 8),
+          ...categoryStats['expenses']!.asMap().entries.map((entry) {
+            final index = entry.key;
+            final stat = entry.value;
+            return _buildRankItem(
+              index + 1,
+              stat['category'] as String,
+              stat['percentage'] as double,
+              stat['color'] as Color,
+            );
+          }).toList(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRankItem(int rank, String category, double percentage, Color color) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          Text(
+            '$rank. ',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
+          ),
+          Expanded(
+            child: Text(
+              category,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: color,
+              ),
+            ),
+          ),
+          Text(
+            '${percentage.toInt()}%',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: color,
             ),
           ),
         ],

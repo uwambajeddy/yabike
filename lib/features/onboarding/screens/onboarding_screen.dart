@@ -1,18 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show defaultTargetPlatform, TargetPlatform;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'package:hive/hive.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../core/routes/app_routes.dart';
 import '../../../data/models/onboarding_model.dart';
-<<<<<<< Updated upstream
-=======
 import '../../../data/services/backup_service.dart';
-import '../../../data/services/sms_rescan_service.dart';
->>>>>>> Stashed changes
 import '../widgets/onboarding_page.dart';
 import '../widgets/page_indicator.dart';
 
@@ -96,8 +90,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     }
   }
 
-<<<<<<< Updated upstream
-=======
   void _restoreFromBackup() async {
     // Mark onboarding as seen
     final prefs = await SharedPreferences.getInstance();
@@ -196,17 +188,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       if (!mounted) return;
       Navigator.of(context).pop(); // Close restoring dialog
       
-      // Wait a bit to ensure Hive boxes are fully initialized
-      await Future.delayed(const Duration(milliseconds: 500));
-      
-      // Request SMS permission on Android for transaction updates
-      final isAndroid = defaultTargetPlatform == TargetPlatform.android;
-      if (isAndroid) {
-        await _requestSmsPermissionAndScan();
-      }
-      
       // Navigate to home
-      if (!mounted) return;
       Navigator.of(context).pushReplacementNamed(AppRoutes.home);
       
       // Show success message
@@ -236,66 +218,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     }
   }
 
-  /// Request SMS permission and scan for new transactions after restore
-  Future<void> _requestSmsPermissionAndScan() async {
-    try {
-      debugPrint('📱 Requesting SMS permission...');
-      
-      // Request SMS permission
-      final status = await Permission.sms.request();
-      
-      if (status.isGranted) {
-        debugPrint('✅ SMS permission granted');
-        
-        // Verify that wallets box has data
-        final walletsBox = Hive.box('wallets');
-        debugPrint('Wallets box contains ${walletsBox.length} wallet(s)');
-        
-        if (walletsBox.isEmpty) {
-          debugPrint('⚠️ No wallets found, skipping SMS scan');
-          return;
-        }
-        
-        // Permission granted, scan for new transactions
-        final smsRescanService = SmsRescanService();
-        debugPrint('🔄 Starting SMS scan for new transactions...');
-        
-        final newCount = await smsRescanService.rescanAndImportNewTransactions();
-        debugPrint('📊 SMS scan complete. Result: $newCount new transaction(s)');
-        
-        if (newCount > 0) {
-          debugPrint('✅ Successfully imported $newCount new transaction(s)');
-          
-          // Show notification to user
-          if (mounted) {
-            Future.delayed(const Duration(seconds: 1), () {
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('$newCount new transaction(s) imported from SMS'),
-                    backgroundColor: AppColors.primary,
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
-              }
-            });
-          }
-        } else {
-          debugPrint('ℹ️ No new transactions found in SMS');
-        }
-      } else if (status.isDenied) {
-        debugPrint('❌ SMS permission denied by user');
-      } else if (status.isPermanentlyDenied) {
-        debugPrint('❌ SMS permission permanently denied');
-      }
-    } catch (e, stackTrace) {
-      debugPrint('❌ Error requesting SMS permission or scanning: $e');
-      debugPrint('Stack trace: $stackTrace');
-      // Fail silently - don't interrupt user experience
-    }
-  }
-
->>>>>>> Stashed changes
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -350,19 +272,40 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             // Next/Get Started button
             Padding(
               padding: EdgeInsets.all(AppSpacing.screenPaddingHorizontal),
-              child: SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _nextPage,
-                  style: ElevatedButton.styleFrom(
-                    padding: EdgeInsets.symmetric(vertical: AppSpacing.lg),
+              child: Column(
+                children: [
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: _nextPage,
+                      style: ElevatedButton.styleFrom(
+                        padding: EdgeInsets.symmetric(vertical: AppSpacing.lg),
+                      ),
+                      child: Text(
+                        _currentPage == _pages.length - 1
+                            ? AppStrings.getStarted
+                            : AppStrings.next,
+                      ),
+                    ),
                   ),
-                  child: Text(
-                    _currentPage == _pages.length - 1
-                        ? AppStrings.getStarted
-                        : AppStrings.next,
-                  ),
-                ),
+                  // Show "Restore from Backup" option on the last page
+                  if (_currentPage == _pages.length - 1) ...[
+                    SizedBox(height: AppSpacing.sm),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: _restoreFromBackup,
+                        icon: const Icon(Icons.cloud_download),
+                        label: const Text('Restore from Backup'),
+                        style: OutlinedButton.styleFrom(
+                          padding: EdgeInsets.symmetric(vertical: AppSpacing.lg),
+                          side: BorderSide(color: AppColors.primary),
+                          foregroundColor: AppColors.primary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ),
             SizedBox(height: AppSpacing.md),

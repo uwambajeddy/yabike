@@ -81,35 +81,14 @@ class HomeViewModel extends ChangeNotifier {
       await _loadWallets();
       await _loadRecentTransactions();
       
-      // Scan for new SMS transactions in the background
-      // Don't await to prevent blocking the UI
-      _scanForNewTransactionsInBackground();
-      
+      // Note: SMS auto-scan removed from initialization to prevent lag
+      // Users can manually refresh to scan for new SMS transactions
       debugPrint('✓ Home screen initialized (${_recentTransactions.length} transactions)');
     } catch (e) {
       debugPrint('Error initializing home screen: $e');
     } finally {
       _isLoading = false;
       notifyListeners();
-    }
-  }
-
-  /// Scan for new SMS transactions in the background without blocking UI
-  void _scanForNewTransactionsInBackground() async {
-    try {
-      final newCount = await _smsRescanService.rescanAndImportNewTransactions();
-      
-      if (newCount > 0) {
-        _newTransactionsCount = newCount;
-        // Reload data to show new transactions
-        await _loadWallets();
-        await _loadRecentTransactions();
-        notifyListeners();
-        debugPrint('✅ Background scan found $newCount new transaction(s)');
-      }
-    } catch (e) {
-      debugPrint('❌ Error in background SMS scan: $e');
-      // Fail silently - don't interrupt user experience
     }
   }
 
