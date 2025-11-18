@@ -60,6 +60,14 @@ dependencies:
   uuid: ^4.2.0
   path_provider: ^2.1.1
   shared_preferences: ^2.2.2
+  path: ^1.9.0
+
+  # Backup & Google Drive
+  google_sign_in: ^6.2.1
+  googleapis: ^13.2.0
+  extension_google_sign_in_as_googleapis_auth: ^2.0.12
+  archive: ^3.6.1
+  url_launcher: ^6.3.1
 
   # Optional Enhancements
   flutter_local_notifications: ^19.4.2

@@ -15,6 +15,7 @@ import '../../features/transaction/viewmodels/transaction_detail_viewmodel.dart'
 import '../../data/models/transaction_model.dart';
 import '../../features/settings/screens/settings_screen.dart';
 import '../../features/settings/screens/categories_screen.dart';
+import '../../features/settings/screens/backup_screen.dart';
 
 /// App route names
 class AppRoutes {
@@ -61,6 +62,7 @@ class AppRoutes {
   // Settings
   static const String settings = '/settings';
   static const String categories = '/settings/categories';
+  static const String backup = '/settings/backup';
   static const String profile = '/settings/profile';
   static const String security = '/settings/security';
   static const String appearance = '/settings/appearance';
@@ -192,6 +194,12 @@ class RouteGenerator {
       case AppRoutes.categories:
         return MaterialPageRoute(
           builder: (_) => const CategoriesScreen(),
+          settings: settings,
+        );
+
+      case AppRoutes.backup:
+        return MaterialPageRoute(
+          builder: (_) => const BackupScreen(),
           settings: settings,
         );
 

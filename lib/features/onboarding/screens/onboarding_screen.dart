@@ -6,6 +6,7 @@ import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../core/routes/app_routes.dart';
 import '../../../data/models/onboarding_model.dart';
+import '../../../data/services/backup_service.dart';
 import '../widgets/onboarding_page.dart';
 import '../widgets/page_indicator.dart';
 
@@ -89,6 +90,134 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     }
   }
 
+  void _restoreFromBackup() async {
+    // Mark onboarding as seen
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('hasSeenOnboarding', true);
+    
+    if (!mounted) return;
+    
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: Card(
+          child: Padding(
+            padding: EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Checking for backup...'),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    
+    try {
+      final backupService = BackupService();
+      await backupService.initialize();
+      
+      // Sign in to Google Drive
+      final account = await backupService.signIn();
+      
+      if (account == null) {
+        // User cancelled sign in
+        if (!mounted) return;
+        Navigator.of(context).pop(); // Close loading dialog
+        return;
+      }
+      
+      // Check if backup exists
+      final hasBackup = await backupService.hasBackup();
+      
+      if (!hasBackup) {
+        // No backup found, navigate to normal flow
+        if (!mounted) return;
+        Navigator.of(context).pop(); // Close loading dialog
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No backup found. Setting up new account...'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        
+        // Continue with normal onboarding
+        final isAndroid = defaultTargetPlatform == TargetPlatform.android;
+        if (isAndroid) {
+          Navigator.of(context).pushReplacementNamed(AppRoutes.smsTerms);
+        } else {
+          Navigator.of(context).pushReplacementNamed(AppRoutes.createWallet);
+        }
+        return;
+      }
+      
+      // Backup exists, restore it
+      if (mounted) {
+        Navigator.of(context).pop(); // Close checking dialog
+        
+        // Show restoring dialog
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => const Center(
+            child: Card(
+              child: Padding(
+                padding: EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 16),
+                    Text('Restoring your data...'),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      }
+      
+      await backupService.restoreData();
+      
+      if (!mounted) return;
+      Navigator.of(context).pop(); // Close restoring dialog
+      
+      // Navigate to home
+      Navigator.of(context).pushReplacementNamed(AppRoutes.home);
+      
+      // Show success message
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Backup restored successfully!'),
+              backgroundColor: AppColors.primary,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      });
+      
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.of(context).pop(); // Close any open dialog
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Restore failed: $e'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -143,19 +272,40 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             // Next/Get Started button
             Padding(
               padding: EdgeInsets.all(AppSpacing.screenPaddingHorizontal),
-              child: SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _nextPage,
-                  style: ElevatedButton.styleFrom(
-                    padding: EdgeInsets.symmetric(vertical: AppSpacing.lg),
+              child: Column(
+                children: [
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: _nextPage,
+                      style: ElevatedButton.styleFrom(
+                        padding: EdgeInsets.symmetric(vertical: AppSpacing.lg),
+                      ),
+                      child: Text(
+                        _currentPage == _pages.length - 1
+                            ? AppStrings.getStarted
+                            : AppStrings.next,
+                      ),
+                    ),
                   ),
-                  child: Text(
-                    _currentPage == _pages.length - 1
-                        ? AppStrings.getStarted
-                        : AppStrings.next,
-                  ),
-                ),
+                  // Show "Restore from Backup" option on the last page
+                  if (_currentPage == _pages.length - 1) ...[
+                    SizedBox(height: AppSpacing.sm),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: _restoreFromBackup,
+                        icon: const Icon(Icons.cloud_download),
+                        label: const Text('Restore from Backup'),
+                        style: OutlinedButton.styleFrom(
+                          padding: EdgeInsets.symmetric(vertical: AppSpacing.lg),
+                          side: BorderSide(color: AppColors.primary),
+                          foregroundColor: AppColors.primary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ),
             SizedBox(height: AppSpacing.md),

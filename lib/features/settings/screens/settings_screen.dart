@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors.dart';
 import 'categories_screen.dart';
+import 'backup_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -140,9 +141,7 @@ class SettingsScreen extends StatelessWidget {
         icon: Icons.backup,
         title: 'Data Management',
         subtitle: 'Backup and restore data',
-        onTap: () {
-          // TODO: Navigate to data management
-        },
+        onTap: () => _navigateToBackup(context),
       ),
       _SettingsMenuItem(
         icon: Icons.help,
@@ -268,7 +267,7 @@ class SettingsScreen extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           _buildInfoRow('Version', '1.0.0'),
-          _buildInfoRow('Build', '2024.01.01'),
+          _buildInfoRow('Build', '2025.08.01'),
           _buildInfoRow('Platform', 'Flutter'),
         ],
       ),
@@ -306,6 +305,15 @@ class SettingsScreen extends StatelessWidget {
       context,
       MaterialPageRoute(
         builder: (context) => const CategoriesScreen(),
+      ),
+    );
+  }
+
+  void _navigateToBackup(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const BackupScreen(),
       ),
     );
   }
