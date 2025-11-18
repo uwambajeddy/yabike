@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show defaultTargetPlatform, TargetPlatform;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:hive/hive.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../core/routes/app_routes.dart';
 import '../../../data/models/onboarding_model.dart';
 import '../../../data/services/backup_service.dart';
+import '../../../data/services/sms_rescan_service.dart';
 import '../widgets/onboarding_page.dart';
 import '../widgets/page_indicator.dart';
 
@@ -215,6 +218,65 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           behavior: SnackBarBehavior.floating,
         ),
       );
+    }
+  }
+
+  /// Request SMS permission and scan for new transactions after restore
+  Future<void> _requestSmsPermissionAndScan() async {
+    try {
+      debugPrint('📱 Requesting SMS permission...');
+      
+      // Request SMS permission
+      final status = await Permission.sms.request();
+      
+      if (status.isGranted) {
+        debugPrint('✅ SMS permission granted');
+        
+        // Verify that wallets box has data
+        final walletsBox = Hive.box('wallets');
+        debugPrint('Wallets box contains ${walletsBox.length} wallet(s)');
+        
+        if (walletsBox.isEmpty) {
+          debugPrint('⚠️ No wallets found, skipping SMS scan');
+          return;
+        }
+        
+        // Permission granted, scan for new transactions
+        final smsRescanService = SmsRescanService();
+        debugPrint('🔄 Starting SMS scan for new transactions...');
+        
+        final newCount = await smsRescanService.rescanAndImportNewTransactions();
+        debugPrint('📊 SMS scan complete. Result: $newCount new transaction(s)');
+        
+        if (newCount > 0) {
+          debugPrint('✅ Successfully imported $newCount new transaction(s)');
+          
+          // Show notification to user
+          if (mounted) {
+            Future.delayed(const Duration(seconds: 1), () {
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('$newCount new transaction(s) imported from SMS'),
+                    backgroundColor: AppColors.primary,
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              }
+            });
+          }
+        } else {
+          debugPrint('ℹ️ No new transactions found in SMS');
+        }
+      } else if (status.isDenied) {
+        debugPrint('❌ SMS permission denied by user');
+      } else if (status.isPermanentlyDenied) {
+        debugPrint('❌ SMS permission permanently denied');
+      }
+    } catch (e, stackTrace) {
+      debugPrint('❌ Error requesting SMS permission or scanning: $e');
+      debugPrint('Stack trace: $stackTrace');
+      // Fail silently - don't interrupt user experience
     }
   }
 
