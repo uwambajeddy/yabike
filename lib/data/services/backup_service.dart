@@ -374,20 +374,10 @@ class BackupService {
   /// Reopen all Hive boxes after restore
   Future<void> reopenHiveBoxes() async {
     try {
-      debugPrint('Opening wallets box...');
       await Hive.openBox('wallets');
-      debugPrint('Opening transactions box...');
       await Hive.openBox('transactions');
-      debugPrint('Opening budgets box...');
       await Hive.openBox('budgets');
-      debugPrint('Opening settings box...');
       await Hive.openBox('settings');
-      
-      // Verify boxes were opened successfully
-      debugPrint('✅ Wallets: ${Hive.box('wallets').length} items');
-      debugPrint('✅ Transactions: ${Hive.box('transactions').length} items');
-      debugPrint('✅ Budgets: ${Hive.box('budgets').length} items');
-      debugPrint('✅ Settings: ${Hive.box('settings').length} items');
     } catch (e) {
       debugPrint('Error reopening Hive boxes: $e');
       rethrow;
