@@ -125,6 +125,33 @@ class _BackupScreenState extends State<BackupScreen> {
     }
   }
 
+  Future<void> _deleteBackup() async {
+    final confirm = await _showConfirmDialog(
+      title: 'Delete Backup',
+      message: 'This will permanently delete your backup from Google Drive. This action cannot be undone. Continue?',
+      isDangerous: true,
+    );
+
+    if (confirm != true) return;
+
+    setState(() => _isLoading = true);
+    try {
+      await _backupService.deleteBackup();
+      if (mounted) {
+        setState(() => _backupInfo = null);
+        _showSnackBar('Backup deleted successfully', isError: false);
+      }
+    } catch (e) {
+      if (mounted) {
+        _showSnackBar('Failed to delete backup: $e');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
   Future<void> _onFrequencyChanged(BackupFrequency? frequency) async {
     if (frequency == null) return;
     
@@ -197,53 +224,68 @@ class _BackupScreenState extends State<BackupScreen> {
                   if (!isSignedIn) ...[
                     _buildSignInCard(theme),
                   ] else ...[
-                    // Backup settings header
-                    Text(
-                      'Backup settings',
-                      style: theme.textTheme.labelLarge?.copyWith(
-                        color: Colors.grey[600],
-                        fontWeight: FontWeight.w500,
+                    // Info card
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withOpacity(0.05),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.info_outline,
+                            color: AppColors.primary,
+                            size: 22,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              'Your data is backed up to Google Drive and can be restored on any device.',
+                              style: TextStyle(
+                                color: Colors.grey[700],
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Back up your data to your Google Account\'s storage. You can restore them on a new phone after you download YaBike on it.',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: Colors.grey[600],
-                      ),
-                    ),
+                    const SizedBox(height: 20),
+
+                    // Account info at the top
+                    _buildGoogleAccountCard(),
                     const SizedBox(height: 24),
 
                     // Last Backup Info
-                    if (_backupInfo != null) _buildBackupInfoSection(theme),
-                    if (_backupInfo != null) const SizedBox(height: 16),
+                    if (_backupInfo != null) ...[
+                      _buildBackupInfoSection(theme),
+                      const SizedBox(height: 16),
+                    ],
 
                     // Back up button
                     _buildBackupButton(),
                     const SizedBox(height: 24),
 
-                    // Manage storage link
-                    _buildManageStorageLink(theme),
-                    const SizedBox(height: 32),
-
-                    // Google Account section
+                    // Google Storage section
                     Text(
-                      'Google Account',
-                      style: theme.textTheme.labelLarge?.copyWith(
-                        color: Colors.grey[600],
-                        fontWeight: FontWeight.w500,
+                      'Storage',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
                       ),
                     ),
                     const SizedBox(height: 12),
-                    _buildGoogleAccountTile(),
-                    const SizedBox(height: 32),
+                    _buildManageStorageLink(theme),
+                    const SizedBox(height: 24),
 
-                    // Automatic backups section
+                    // Settings section
                     Text(
-                      'Automatic backups',
-                      style: theme.textTheme.labelLarge?.copyWith(
-                        color: Colors.grey[600],
-                        fontWeight: FontWeight.w500,
+                      'Settings',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -257,11 +299,42 @@ class _BackupScreenState extends State<BackupScreen> {
                         child: OutlinedButton(
                           onPressed: _restoreBackup,
                           style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.all(16),
-                            side: BorderSide(color: AppColors.primary),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            side: BorderSide(color: AppColors.primary, width: 1.5),
                             foregroundColor: AppColors.primary,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(30),
+                            ),
                           ),
-                          child: const Text('Restore Backup'),
+                          child: const Text(
+                            'Restore Backup',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton(
+                          onPressed: _deleteBackup,
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            side: BorderSide(color: Colors.red, width: 1.5),
+                            foregroundColor: Colors.red,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(30),
+                            ),
+                          ),
+                          child: const Text(
+                            'Delete Backup',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                         ),
                       ),
                     ],
@@ -323,39 +396,82 @@ class _BackupScreenState extends State<BackupScreen> {
     final lastBackup = _backupService.getLastBackupTime();
     final size = _backupInfo!['size'] as String?;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (lastBackup != null)
-          _buildInfoRow(
-            'Last Backup',
-            DateFormat('h:mm a').format(lastBackup.toLocal()),
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[200]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.cloud_done,
+                  color: AppColors.primary,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'Last backup',
+                style: TextStyle(
+                  color: Colors.black87,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
           ),
-        if (size != null && size != '0')
-          _buildInfoRow('Size', '$size KB'),
-      ],
+          const SizedBox(height: 12),
+          if (lastBackup != null) ...[
+            _buildInfoRow(
+              'Date',
+              DateFormat('MMM dd, yyyy').format(lastBackup.toLocal()),
+            ),
+            const SizedBox(height: 8),
+            _buildInfoRow(
+              'Time',
+              DateFormat('h:mm a').format(lastBackup.toLocal()),
+            ),
+          ],
+          if (size != null && size != '0') ...[
+            const SizedBox(height: 8),
+            _buildInfoRow('Size', '$size KB'),
+          ],
+        ],
+      ),
     );
   }
 
   Widget _buildInfoRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            label,
-            style: TextStyle(color: Colors.grey[700], fontSize: 15),
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            color: Colors.grey[600],
+            fontSize: 14,
           ),
-          Text(
-            value,
-            style: TextStyle(
-              color: Colors.grey[700],
-              fontSize: 15,
-            ),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            color: Colors.black87,
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -367,43 +483,164 @@ class _BackupScreenState extends State<BackupScreen> {
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(30),
           ),
         ),
-        child: const Text('Back up', style: TextStyle(fontSize: 15)),
+        child: const Text(
+          'Back up',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       ),
     );
   }
 
   Widget _buildManageStorageLink(ThemeData theme) {
-    String storageText = 'Loading...';
-    
-    if (_storageQuota != null) {
-      final used = _storageQuota!['usageFormatted'] as String;
-      final total = _storageQuota!['limitFormatted'] as String;
-      storageText = '$used of $total used';
+    if (_storageQuota == null) {
+      return const SizedBox.shrink();
     }
+
+    final used = _storageQuota!['usageFormatted'] as String;
+    final total = _storageQuota!['limitFormatted'] as String;
+    final percentUsed = double.tryParse(_storageQuota!['percentUsed'] as String) ?? 0;
     
     return InkWell(
       onTap: () => _backupService.openManageStorage(),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey[200]!),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.cloud_outlined, color: AppColors.primary, size: 22),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Google storage',
+                    style: TextStyle(
+                      color: Colors.black87,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+                Icon(Icons.chevron_right, color: Colors.grey[400], size: 22),
+              ],
+            ),
+            const SizedBox(height: 12),
+            // Storage bar
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: percentUsed / 100,
+                minHeight: 8,
+                backgroundColor: Colors.grey[200],
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  percentUsed > 90 ? Colors.red : 
+                  percentUsed > 75 ? Colors.orange : 
+                  AppColors.primary,
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  '$used of $total used',
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                    fontSize: 13,
+                  ),
+                ),
+                Text(
+                  '${percentUsed.toStringAsFixed(0)}%',
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGoogleAccountCard() {
+    final email = _backupService.currentUser?.email ?? '';
+    
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[200]!),
+      ),
       child: Row(
         children: [
-          Icon(Icons.storage, color: AppColors.primary, size: 20),
-          const SizedBox(width: 8),
-          Expanded(
+          CircleAvatar(
+            backgroundColor: AppColors.primary,
+            radius: 24,
             child: Text(
-              'Manage Google storage',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: AppColors.primary,
+              email.isNotEmpty ? email[0].toUpperCase() : 'U',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
-          Text(
-            storageText,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: Colors.grey[600],
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  email,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    color: Colors.black87,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Connected',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          TextButton(
+            onPressed: _switchAccount,
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.primary,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            ),
+            child: const Text(
+              'Switch',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
         ],
@@ -416,30 +653,39 @@ class _BackupScreenState extends State<BackupScreen> {
     
     return InkWell(
       onTap: _switchAccount,
+      borderRadius: BorderRadius.circular(12),
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey[300]!),
+          border: Border.all(color: Colors.grey[200]!),
         ),
         child: Row(
           children: [
             CircleAvatar(
               backgroundColor: AppColors.primary,
+              radius: 20,
               child: Text(
                 email.isNotEmpty ? email[0].toUpperCase() : 'U',
-                style: const TextStyle(color: Colors.white),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 14),
             Expanded(
               child: Text(
                 email,
-                style: const TextStyle(fontSize: 15),
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: Colors.black87,
+                ),
               ),
             ),
-            Icon(Icons.chevron_right, color: Colors.grey[400]),
+            Icon(Icons.chevron_right, color: Colors.grey[400], size: 22),
           ],
         ),
       ),
@@ -449,22 +695,26 @@ class _BackupScreenState extends State<BackupScreen> {
   Widget _buildAutomaticBackupsTile() {
     return InkWell(
       onTap: _showAutomaticBackupsModal,
+      borderRadius: BorderRadius.circular(12),
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey[300]!),
+          border: Border.all(color: Colors.grey[200]!),
         ),
         child: Row(
           children: [
             Expanded(
               child: Text(
                 _selectedFrequency.label,
-                style: const TextStyle(fontSize: 15),
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: Colors.black87,
+                ),
               ),
             ),
-            Icon(Icons.chevron_right, color: Colors.grey[400]),
+            Icon(Icons.chevron_right, color: Colors.grey[400], size: 22),
           ],
         ),
       ),
