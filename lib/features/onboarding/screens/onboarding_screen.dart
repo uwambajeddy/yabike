@@ -191,7 +191,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       if (!mounted) return;
       Navigator.of(context).pop(); // Close restoring dialog
       
+      // Wait a bit to ensure Hive boxes are fully initialized
+      await Future.delayed(const Duration(milliseconds: 500));
+      
+      // Request SMS permission on Android for transaction updates
+      final isAndroid = defaultTargetPlatform == TargetPlatform.android;
+      if (isAndroid) {
+        await _requestSmsPermissionAndScan();
+      }
+      
       // Navigate to home
+      if (!mounted) return;
       Navigator.of(context).pushReplacementNamed(AppRoutes.home);
       
       // Show success message
@@ -334,40 +344,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             // Next/Get Started button
             Padding(
               padding: EdgeInsets.all(AppSpacing.screenPaddingHorizontal),
-              child: Column(
-                children: [
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: _nextPage,
-                      style: ElevatedButton.styleFrom(
-                        padding: EdgeInsets.symmetric(vertical: AppSpacing.lg),
-                      ),
-                      child: Text(
-                        _currentPage == _pages.length - 1
-                            ? AppStrings.getStarted
-                            : AppStrings.next,
-                      ),
-                    ),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _nextPage,
+                  style: ElevatedButton.styleFrom(
+                    padding: EdgeInsets.symmetric(vertical: AppSpacing.lg),
                   ),
-                  // Show "Restore from Backup" option on the last page
-                  if (_currentPage == _pages.length - 1) ...[
-                    SizedBox(height: AppSpacing.sm),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton.icon(
-                        onPressed: _restoreFromBackup,
-                        icon: const Icon(Icons.cloud_download),
-                        label: const Text('Restore from Backup'),
-                        style: OutlinedButton.styleFrom(
-                          padding: EdgeInsets.symmetric(vertical: AppSpacing.lg),
-                          side: BorderSide(color: AppColors.primary),
-                          foregroundColor: AppColors.primary,
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
+                  child: Text(
+                    _currentPage == _pages.length - 1
+                        ? AppStrings.getStarted
+                        : AppStrings.next,
+                  ),
+                ),
               ),
             ),
             SizedBox(height: AppSpacing.md),
