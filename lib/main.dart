@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'app.dart';
 import 'data/services/backup_service.dart';
+import 'data/services/sms_rescan_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -23,6 +25,9 @@ void main() async {
   // Check and perform automatic backup if due
   _checkAndPerformAutomaticBackup();
 
+  // Scan for new SMS transactions on app startup
+  _scanForNewTransactions();
+
   runApp(const YaBikeApp());
 }
 
@@ -40,6 +45,31 @@ void _checkAndPerformAutomaticBackup() async {
     }
   } catch (e) {
     debugPrint('Automatic backup failed: $e');
+    // Fail silently - don't interrupt app startup
+  }
+}
+
+/// Scan for new SMS transactions on app startup
+void _scanForNewTransactions() async {
+  try {
+    // Check if SMS permission is granted
+    final status = await Permission.sms.status;
+    if (!status.isGranted) {
+      debugPrint('SMS permission not granted, skipping auto-scan');
+      return;
+    }
+
+    final smsRescanService = SmsRescanService();
+    debugPrint('🔄 Scanning for new transactions on app startup...');
+    final newCount = await smsRescanService.rescanAndImportNewTransactions();
+    
+    if (newCount > 0) {
+      debugPrint('✅ Auto-imported $newCount new transaction(s) on app startup');
+    } else {
+      debugPrint('✓ No new transactions found');
+    }
+  } catch (e) {
+    debugPrint('❌ Error scanning for new transactions: $e');
     // Fail silently - don't interrupt app startup
   }
 }
