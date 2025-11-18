@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
-// import '../../../../data/models/category_model.dart'; // Temporarily disabled
 
 class StatCard extends StatelessWidget {
   final String label;
