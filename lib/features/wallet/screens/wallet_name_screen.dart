@@ -76,6 +76,51 @@ class _WalletNameScreenState extends State<WalletNameScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              SizedBox(height: AppSpacing.md),
+              
+              // Restore from Backup option
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.primary100,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.primary200),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.cloud_download, color: AppColors.primary, size: 24),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Have a backup?',
+                            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.primary700,
+                                ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Restore your data from Google Drive',
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: AppColors.primary600,
+                                ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pushNamed(context, AppRoutes.backup);
+                      },
+                      child: const Text('Restore'),
+                    ),
+                  ],
+                ),
+              ),
+              
               SizedBox(height: AppSpacing.xl),
               
               // Title

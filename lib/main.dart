@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'app.dart';
+import 'data/services/backup_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,5 +20,26 @@ void main() async {
   await Hive.openBox('budgets');
   await Hive.openBox('settings');
 
+  // Check and perform automatic backup if due
+  _checkAndPerformAutomaticBackup();
+
   runApp(const YaBikeApp());
+}
+
+/// Check if automatic backup is due and perform it in the background
+void _checkAndPerformAutomaticBackup() async {
+  try {
+    final BackupService backupService = BackupService();
+    await backupService.initialize();
+    
+    // Only attempt backup if user is signed in and backup is due
+    if (backupService.isSignedIn && backupService.isBackupDue()) {
+      debugPrint('Automatic backup is due, performing backup...');
+      await backupService.backupData();
+      debugPrint('Automatic backup completed successfully');
+    }
+  } catch (e) {
+    debugPrint('Automatic backup failed: $e');
+    // Fail silently - don't interrupt app startup
+  }
 }
