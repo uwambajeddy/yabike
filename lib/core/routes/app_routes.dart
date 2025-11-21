@@ -16,12 +16,15 @@ import '../../data/models/transaction_model.dart';
 import '../../features/settings/screens/settings_screen.dart';
 import '../../features/settings/screens/categories_screen.dart';
 import '../../features/settings/screens/backup_screen.dart';
+import '../../features/settings/screens/wallet_settings_screen.dart';
+import '../../features/settings/screens/edit_wallet_screen.dart';
 import '../../features/settings/screens/notification_settings_screen.dart';
 import '../../features/notifications/screens/notification_inbox_screen.dart';
 import '../../features/security/screens/security_settings_screen.dart';
 import '../../features/security/screens/setup_pin_screen.dart';
 import '../../features/security/screens/change_pin_screen.dart';
 import '../../features/security/screens/unlock_screen.dart';
+import '../../data/models/wallet_model.dart';
 
 /// App route names
 class AppRoutes {
@@ -51,6 +54,7 @@ class AppRoutes {
   static const String walletDetail = '/wallets/detail';
   static const String createWallet = '/wallets/create';
   static const String editWallet = '/wallets/edit';
+  static const String walletSettings = '/settings/wallets';
 
   // Transactions
   static const String transactions = '/transactions';
@@ -246,6 +250,26 @@ class RouteGenerator {
       case AppRoutes.unlock:
         return MaterialPageRoute(
           builder: (_) => const UnlockScreen(),
+          settings: settings,
+        );
+
+      case AppRoutes.walletSettings:
+        return MaterialPageRoute(
+          builder: (_) => const WalletSettingsScreen(),
+          settings: settings,
+        );
+
+      case AppRoutes.editWallet:
+        final wallet = settings.arguments as Wallet?;
+        if (wallet == null) {
+          return MaterialPageRoute(
+            builder: (_) => const Scaffold(
+              body: Center(child: Text('Wallet not found')),
+            ),
+          );
+        }
+        return MaterialPageRoute(
+          builder: (_) => EditWalletScreen(wallet: wallet),
           settings: settings,
         );
 
