@@ -128,9 +128,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         icon: Icons.account_balance_wallet,
         title: 'Wallets',
         subtitle: 'Manage your wallets',
-        onTap: () {
-          // TODO: Navigate to wallets management
-        },
+        onTap: () => Navigator.pushNamed(context, AppRoutes.walletSettings),
       ),
       // _SettingsMenuItem(
       //   icon: Icons.notifications,

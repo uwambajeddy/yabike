@@ -16,6 +16,7 @@ class _UnlockScreenState extends State<UnlockScreen> {
   int _attemptCount = 0;
   final int _maxAttempts = 5;
   bool _canUseBiometric = false;
+  bool _biometricTriggered = false;
 
   @override
   void initState() {
@@ -30,10 +31,13 @@ class _UnlockScreenState extends State<UnlockScreen> {
         _canUseBiometric = available;
       });
       
-      // Auto-trigger biometric on first load
-      if (available) {
+      // Auto-trigger biometric on first load only once
+      if (available && !_biometricTriggered) {
+        _biometricTriggered = true;
         Future.delayed(const Duration(milliseconds: 500), () {
-          _authenticateWithBiometric();
+          if (mounted) {
+            _authenticateWithBiometric();
+          }
         });
       }
     }

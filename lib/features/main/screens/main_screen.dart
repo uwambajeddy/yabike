@@ -30,6 +30,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   late PageController _pageController;
   final SecurityService _securityService = SecurityService();
   bool _isLocked = false;
+  bool _isShowingUnlockScreen = false;
 
   @override
   void initState() {
@@ -45,17 +46,15 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     super.didChangeAppLifecycleState(state);
     
     // Lock app when it goes to background
-    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+    if (state == AppLifecycleState.paused) {
       if (_securityService.isSecurityEnabled()) {
-        setState(() {
-          _isLocked = true;
-        });
+        _isLocked = true;
       }
     }
     
     // Show unlock screen when app resumes
     if (state == AppLifecycleState.resumed) {
-      if (_isLocked && _securityService.isSecurityEnabled()) {
+      if (_isLocked && _securityService.isSecurityEnabled() && !_isShowingUnlockScreen) {
         _showUnlockScreen();
       }
     }
@@ -65,12 +64,15 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     // Small delay to let the screen build first
     await Future.delayed(const Duration(milliseconds: 300));
     
-    if (_securityService.isSecurityEnabled() && mounted) {
+    if (_securityService.isSecurityEnabled() && mounted && !_isShowingUnlockScreen) {
       _showUnlockScreen();
     }
   }
 
   Future<void> _showUnlockScreen() async {
+    if (_isShowingUnlockScreen) return; // Prevent multiple unlock screens
+    
+    _isShowingUnlockScreen = true;
     final result = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
@@ -78,11 +80,17 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         fullscreenDialog: true,
       ),
     );
+    _isShowingUnlockScreen = false;
     
     if (result == true) {
       setState(() {
         _isLocked = false;
       });
+    } else {
+      // If unlock was not successful, try again
+      if (_securityService.isSecurityEnabled() && mounted) {
+        _showUnlockScreen();
+      }
     }
   }
 
