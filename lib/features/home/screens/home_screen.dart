@@ -5,6 +5,7 @@ import '../../../core/routes/app_routes.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../data/models/wallet_model.dart';
 import '../../../data/models/transaction_model.dart';
+import '../../../data/services/notification_service.dart';
 import '../viewmodels/home_viewmodel.dart';
 import '../widgets/transaction_list_item.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -24,11 +25,21 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  final NotificationService _notificationService = NotificationService();
+  int _unreadCount = 0;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<HomeViewModel>().initialize();
+      _loadUnreadCount();
+    });
+  }
+
+  void _loadUnreadCount() {
+    setState(() {
+      _unreadCount = _notificationService.getUnreadCount();
     });
   }
 
@@ -50,12 +61,45 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined),
-            iconSize: 28.0,
-            onPressed: () {
-              // TODO: Open notifications
-            },
+          Stack(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.notifications_outlined),
+                iconSize: 28.0,
+                onPressed: () async {
+                  await Navigator.pushNamed(context, AppRoutes.notificationInbox);
+                  _loadUnreadCount(); // Refresh count after returning
+                },
+              ),
+              if (_unreadCount > 0)
+                Positioned(
+                  right: 8,
+                  top: 8,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 1.5),
+                    ),
+                    constraints: const BoxConstraints(
+                      minWidth: 18,
+                      minHeight: 18,
+                    ),
+                    child: Center(
+                      child: Text(
+                        _unreadCount > 99 ? '99+' : _unreadCount.toString(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           ),
         ],
       ),
