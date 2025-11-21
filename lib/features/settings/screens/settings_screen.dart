@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/routes/app_routes.dart';
 import 'categories_screen.dart';
 import 'backup_screen.dart';
 
@@ -136,6 +137,12 @@ class SettingsScreen extends StatelessWidget {
         onTap: () {
           // TODO: Navigate to appearance settings
         },
+      ),
+      _SettingsMenuItem(
+        icon: Icons.notifications_outlined,
+        title: 'Notifications',
+        subtitle: 'Manage notification preferences',
+        onTap: () => Navigator.pushNamed(context, AppRoutes.notifications),
       ),
       _SettingsMenuItem(
         icon: Icons.backup,

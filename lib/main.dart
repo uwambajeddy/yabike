@@ -4,6 +4,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'app.dart';
 import 'data/services/backup_service.dart';
 import 'data/services/sms_rescan_service.dart';
+import 'data/services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,6 +22,9 @@ void main() async {
   await Hive.openBox('transactions');
   await Hive.openBox('budgets');
   await Hive.openBox('settings');
+
+  // Initialize notification service
+  await NotificationService().initialize();
 
   // Check and perform automatic backup if due
   _checkAndPerformAutomaticBackup();

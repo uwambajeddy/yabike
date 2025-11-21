@@ -299,7 +299,16 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
               title: const Text('Edit Transaction'),
               onTap: () {
                 Navigator.pop(context);
-                // TODO: Navigate to edit transaction
+                Navigator.pushNamed(
+                  context,
+                  AppRoutes.addTransaction,
+                  arguments: viewModel.transaction,
+                ).then((_) {
+                  // Refresh transaction detail after edit
+                  if (mounted) {
+                    viewModel.initialize(widget.transaction);
+                  }
+                });
               },
             ),
 
