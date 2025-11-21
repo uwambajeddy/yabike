@@ -16,6 +16,7 @@ import '../../data/models/transaction_model.dart';
 import '../../features/settings/screens/settings_screen.dart';
 import '../../features/settings/screens/categories_screen.dart';
 import '../../features/settings/screens/backup_screen.dart';
+import '../../features/settings/screens/notification_settings_screen.dart';
 
 /// App route names
 class AppRoutes {
@@ -154,10 +155,11 @@ class RouteGenerator {
         );
 
       case AppRoutes.addTransaction:
+        final transaction = settings.arguments as Transaction?;
         return MaterialPageRoute(
           builder: (_) => ChangeNotifierProvider(
             create: (_) => AddTransactionViewModel(),
-            child: const AddTransactionScreen(),
+            child: AddTransactionScreen(transaction: transaction),
           ),
           settings: settings,
         );
@@ -200,6 +202,18 @@ class RouteGenerator {
       case AppRoutes.backup:
         return MaterialPageRoute(
           builder: (_) => const BackupScreen(),
+          settings: settings,
+        );
+
+      case AppRoutes.backup:
+        return MaterialPageRoute(
+          builder: (_) => const BackupScreen(),
+          settings: settings,
+        );
+
+      case AppRoutes.notifications:
+        return MaterialPageRoute(
+          builder: (_) => const NotificationSettingsScreen(),
           settings: settings,
         );
 

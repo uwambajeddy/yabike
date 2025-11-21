@@ -6,6 +6,7 @@ import '../models/transaction_model.dart';
 import '../repositories/transaction_repository.dart';
 import '../repositories/wallet_repository.dart';
 import 'sms_parser_service.dart';
+import 'notification_service.dart';
 
 /// Service for rescanning SMS messages and importing new transactions
 class SmsRescanService {
@@ -153,6 +154,11 @@ class SmsRescanService {
       await prefs.setInt(_lastScanKey, DateTime.now().millisecondsSinceEpoch);
       await prefs.setInt(_lastScanCountKey, allMessages.length);
       debugPrint('💾 Updated last scan timestamp');
+      
+      // Notify user about new transactions
+      if (newTransactions.isNotEmpty) {
+        await NotificationService().notifyNewTransactions(newTransactions.length);
+      }
       
       debugPrint('==============================\n');
 

@@ -22,6 +22,7 @@ class AddTransactionViewModel extends ChangeNotifier {
   Wallet? _selectedWallet;
   String? _note;
   String? _receiptPath;
+  Transaction? _editingTransaction;
   
   // Wallets
   List<Wallet> _wallets = [];
@@ -51,13 +52,35 @@ class AddTransactionViewModel extends ChangeNotifier {
       _amount > 0 && _selectedCategory != null && _selectedWallet != null;
 
   /// Initialize - load wallets and categories
-  Future<void> initialize() async {
+  Future<void> initialize([Transaction? transaction]) async {
+    _editingTransaction = transaction;
     _wallets = _walletRepository.getActiveWallets();
     await _categoryService.initialize();
     _categories = _categoryService.categories;
     
-    if (_wallets.isNotEmpty && _selectedWallet == null) {
-      _selectedWallet = _wallets.first;
+    if (transaction != null) {
+      // Pre-fill with transaction data
+      _amount = transaction.amount;
+      _type = transaction.type == 'credit' ? TransactionType.income : TransactionType.expense;
+      _description = transaction.description;
+      _date = transaction.date;
+      _note = transaction.rawMessage;
+      
+      // Find and set wallet
+      _selectedWallet = _wallets.firstWhere(
+        (w) => w.id == transaction.walletId,
+        orElse: () => _wallets.isNotEmpty ? _wallets.first : _wallets.first,
+      );
+      
+      // Find and set category
+      _selectedCategory = _categories.firstWhere(
+        (c) => c.name == transaction.category,
+        orElse: () => _categories.first,
+      );
+    } else {
+      if (_wallets.isNotEmpty && _selectedWallet == null) {
+        _selectedWallet = _wallets.first;
+      }
     }
     notifyListeners();
   }
@@ -117,31 +140,67 @@ class AddTransactionViewModel extends ChangeNotifier {
     if (!canSave || _type == null) return false;
 
     try {
-      final transaction = Transaction(
-        date: _date,
-        source: _selectedWallet!.provider ?? 'Manual',
-        rawMessage: _note ?? '',
-        type: _type == TransactionType.income ? 'credit' : 'debit',
-        category: _selectedCategory!.name,
-        amount: _amount,
-        currency: _selectedWallet!.currency,
-        amountRWF: _selectedWallet!.currency == 'RWF'
-            ? _amount
-            : _amount * 1440, // Convert USD to RWF
-        description: _description,
-        walletId: _selectedWallet!.id,
-      );
+      if (_editingTransaction != null) {
+        // Edit mode - update existing transaction
+        final oldTransaction = _editingTransaction!;
+        final oldAmount = oldTransaction.amount;
+        final oldType = oldTransaction.type;
+        
+        // Revert old transaction's effect on wallet balance
+        final oldWallet = _wallets.firstWhere((w) => w.id == oldTransaction.walletId);
+        final revertedBalance = oldType == 'credit'
+            ? oldWallet.balance - oldAmount
+            : oldWallet.balance + oldAmount;
+        
+        final updatedTransaction = oldTransaction.copyWith(
+          date: _date,
+          type: _type == TransactionType.income ? 'credit' : 'debit',
+          category: _selectedCategory!.name,
+          amount: _amount,
+          currency: _selectedWallet!.currency,
+          description: _description,
+          walletId: _selectedWallet!.id,
+          rawMessage: _note ?? '',
+        );
+        
+        await _transactionRepository.updateTransaction(updatedTransaction);
+        
+        // Apply new transaction's effect on wallet balance
+        final newBalance = _type == TransactionType.income
+            ? revertedBalance + _amount
+            : revertedBalance - _amount;
+        
+        await _walletRepository.updateWallet(
+          _selectedWallet!.copyWith(balance: newBalance),
+        );
+      } else {
+        // Add mode - create new transaction
+        final transaction = Transaction(
+          date: _date,
+          source: _selectedWallet!.provider ?? 'Manual',
+          rawMessage: _note ?? '',
+          type: _type == TransactionType.income ? 'credit' : 'debit',
+          category: _selectedCategory!.name,
+          amount: _amount,
+          currency: _selectedWallet!.currency,
+          amountRWF: _selectedWallet!.currency == 'RWF'
+              ? _amount
+              : _amount * 1440, // Convert USD to RWF
+          description: _description,
+          walletId: _selectedWallet!.id,
+        );
 
-      await _transactionRepository.addTransaction(transaction);
+        await _transactionRepository.addTransaction(transaction);
 
-      // Update wallet balance
-      final newBalance = _type == TransactionType.income
-          ? _selectedWallet!.balance + _amount
-          : _selectedWallet!.balance - _amount;
-      
-      await _walletRepository.updateWallet(
-        _selectedWallet!.copyWith(balance: newBalance),
-      );
+        // Update wallet balance
+        final newBalance = _type == TransactionType.income
+            ? _selectedWallet!.balance + _amount
+            : _selectedWallet!.balance - _amount;
+        
+        await _walletRepository.updateWallet(
+          _selectedWallet!.copyWith(balance: newBalance),
+        );
+      }
 
       return true;
     } catch (e) {

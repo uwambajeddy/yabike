@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../data/models/budget_model.dart';
 import '../../../data/repositories/budget_repository.dart';
 import '../../../data/repositories/transaction_repository.dart';
+import '../../../data/services/notification_service.dart';
 
 class BudgetViewModel extends ChangeNotifier {
   final BudgetRepository _budgetRepository = BudgetRepository();
@@ -65,6 +66,9 @@ class BudgetViewModel extends ChangeNotifier {
       // Update if different
       if (spent != budget.spent) {
         await _budgetRepository.updateBudgetSpent(budget.id, spent);
+        
+        // Check budget alerts
+        await NotificationService().checkBudgetAlert(budget, spent);
       }
     }
 

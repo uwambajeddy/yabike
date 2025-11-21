@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../data/models/transaction_model.dart';
 import '../viewmodels/add_transaction_viewmodel.dart';
 import '../widgets/date_picker_bottom_sheet.dart';
 
 class AddTransactionScreen extends StatefulWidget {
-  const AddTransactionScreen({super.key});
+  final Transaction? transaction;
+  
+  const AddTransactionScreen({super.key, this.transaction});
 
   @override
   State<AddTransactionScreen> createState() => _AddTransactionScreenState();
@@ -25,7 +28,15 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<AddTransactionViewModel>().initialize();
+      context.read<AddTransactionViewModel>().initialize(widget.transaction);
+      
+      // Pre-fill form if editing
+      if (widget.transaction != null) {
+        final tx = widget.transaction!;
+        _amountController.text = tx.amount.toString();
+        _transactionNameController.text = tx.description;
+        _noteController.text = tx.rawMessage;
+      }
     });
   }
 
@@ -79,7 +90,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
           onPressed: _previousPage,
         ),
         title: Text(
-          _getPageTitle(_currentPage),
+          widget.transaction != null ? 'Edit Transaction' : _getPageTitle(_currentPage),
           style: const TextStyle(
             color: Colors.black,
             fontSize: 20,
@@ -1162,14 +1173,21 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   Widget _buildReviewRow(String label, String value) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
           style: const TextStyle(fontSize: 14, color: Colors.grey),
         ),
-        Text(
-          value,
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Text(
+            value,
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+            textAlign: TextAlign.right,
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+          ),
         ),
       ],
     );

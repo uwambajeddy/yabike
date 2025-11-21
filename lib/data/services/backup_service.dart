@@ -9,6 +9,7 @@ import 'package:archive/archive_io.dart';
 import 'package:hive/hive.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'notification_service.dart';
 
 enum BackupFrequency {
   off('Off'),
@@ -271,8 +272,12 @@ class BackupService {
       if (zipFile.existsSync()) {
         zipFile.deleteSync();
       }
+      
+      // Notify success
+      await NotificationService().notifyBackupSuccess();
     } catch (e) {
       debugPrint('Error during backup: $e');
+      await NotificationService().notifyBackupFailure(e.toString());
       rethrow;
     }
   }
