@@ -151,10 +151,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _SettingsMenuItem(
         icon: Icons.security,
         title: 'Security',
-        subtitle: 'Privacy and security settings',
-        onTap: () {
-          // TODO: Navigate to security settings
-        },
+        subtitle: 'PIN and biometric authentication',
+        onTap: () => Navigator.pushNamed(context, AppRoutes.security),
       ),
       // _SettingsMenuItem(
       //   icon: Icons.palette,

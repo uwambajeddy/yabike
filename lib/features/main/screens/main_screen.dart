@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/routes/app_routes.dart';
+import '../../../data/services/security_service.dart';
+import '../../../features/security/screens/unlock_screen.dart';
 import '../../home/screens/home_screen.dart';
 import '../../home/viewmodels/home_viewmodel.dart';
 import '../../transaction/screens/transactions_screen.dart';
@@ -23,19 +25,70 @@ class MainScreen extends StatefulWidget {
   State<MainScreen> createState() => _MainScreenState();
 }
 
-class _MainScreenState extends State<MainScreen> {
+class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   late int _currentIndex;
   late PageController _pageController;
+  final SecurityService _securityService = SecurityService();
+  bool _isLocked = false;
 
   @override
   void initState() {
     super.initState();
     _currentIndex = widget.initialIndex;
     _pageController = PageController(initialPage: _currentIndex);
+    WidgetsBinding.instance.addObserver(this);
+    _checkSecurityOnStart();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    
+    // Lock app when it goes to background
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+      if (_securityService.isSecurityEnabled()) {
+        setState(() {
+          _isLocked = true;
+        });
+      }
+    }
+    
+    // Show unlock screen when app resumes
+    if (state == AppLifecycleState.resumed) {
+      if (_isLocked && _securityService.isSecurityEnabled()) {
+        _showUnlockScreen();
+      }
+    }
+  }
+
+  Future<void> _checkSecurityOnStart() async {
+    // Small delay to let the screen build first
+    await Future.delayed(const Duration(milliseconds: 300));
+    
+    if (_securityService.isSecurityEnabled() && mounted) {
+      _showUnlockScreen();
+    }
+  }
+
+  Future<void> _showUnlockScreen() async {
+    final result = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const UnlockScreen(),
+        fullscreenDialog: true,
+      ),
+    );
+    
+    if (result == true) {
+      setState(() {
+        _isLocked = false;
+      });
+    }
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _pageController.dispose();
     super.dispose();
   }
