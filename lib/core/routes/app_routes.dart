@@ -18,6 +18,10 @@ import '../../features/settings/screens/categories_screen.dart';
 import '../../features/settings/screens/backup_screen.dart';
 import '../../features/settings/screens/notification_settings_screen.dart';
 import '../../features/notifications/screens/notification_inbox_screen.dart';
+import '../../features/security/screens/security_settings_screen.dart';
+import '../../features/security/screens/setup_pin_screen.dart';
+import '../../features/security/screens/change_pin_screen.dart';
+import '../../features/security/screens/unlock_screen.dart';
 
 /// App route names
 class AppRoutes {
@@ -67,6 +71,8 @@ class AppRoutes {
   static const String backup = '/settings/backup';
   static const String profile = '/settings/profile';
   static const String security = '/settings/security';
+  static const String setupPin = '/security/setup-pin';
+  static const String changePin = '/security/change-pin';
   static const String appearance = '/settings/appearance';
   static const String notifications = '/settings/notifications';
   static const String notificationInbox = '/notifications/inbox';
@@ -216,6 +222,30 @@ class RouteGenerator {
       case AppRoutes.notificationInbox:
         return MaterialPageRoute(
           builder: (_) => const NotificationInboxScreen(),
+          settings: settings,
+        );
+
+      case AppRoutes.security:
+        return MaterialPageRoute(
+          builder: (_) => const SecuritySettingsScreen(),
+          settings: settings,
+        );
+
+      case AppRoutes.setupPin:
+        return MaterialPageRoute(
+          builder: (_) => const SetupPinScreen(),
+          settings: settings,
+        );
+
+      case AppRoutes.changePin:
+        return MaterialPageRoute(
+          builder: (_) => const ChangePinScreen(),
+          settings: settings,
+        );
+
+      case AppRoutes.unlock:
+        return MaterialPageRoute(
+          builder: (_) => const UnlockScreen(),
           settings: settings,
         );
 
