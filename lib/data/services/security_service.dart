@@ -126,6 +126,18 @@ class SecurityService {
     await setPin(newPin);
   }
 
+  /// Check if security is paused (e.g. during camera usage)
+  bool _isSecurityPaused = false;
+  bool get isSecurityPaused => _isSecurityPaused;
+
+  void pauseSecurity() {
+    _isSecurityPaused = true;
+  }
+
+  void resumeSecurity() {
+    _isSecurityPaused = false;
+  }
+
   /// Get biometric type name
   String getBiometricTypeName(List<BiometricType> types) {
     if (types.contains(BiometricType.face)) {

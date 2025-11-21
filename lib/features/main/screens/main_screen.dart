@@ -47,7 +47,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     
     // Lock app when it goes to background
     if (state == AppLifecycleState.paused) {
-      if (_securityService.isSecurityEnabled()) {
+      if (_securityService.isSecurityEnabled() && !_securityService.isSecurityPaused) {
         _isLocked = true;
       }
     }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../data/models/transaction_model.dart';
 import '../viewmodels/add_transaction_viewmodel.dart';
@@ -28,7 +29,31 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<AddTransactionViewModel>().initialize(widget.transaction);
+      final viewModel = context.read<AddTransactionViewModel>();
+      viewModel.initialize(widget.transaction);
+      
+      // Listen to ViewModel changes and update controllers
+      viewModel.addListener(() {
+        // Update amount controller if amount changed
+        if (viewModel.amount > 0 && _amountController.text != viewModel.amount.toString()) {
+          _amountController.text = viewModel.amount.toString();
+        }
+        // Update description controller if description changed
+        if (viewModel.description.isNotEmpty && _transactionNameController.text != viewModel.description) {
+          _transactionNameController.text = viewModel.description;
+        }
+        
+        // Show feedback for scan results
+        if (viewModel.lastScanError != null) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _showScanFeedback(viewModel, isError: true);
+          });
+        } else if (viewModel.lastScanConfidence != null && viewModel.lastScanConfidence! < 0.5) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _showScanFeedback(viewModel, isError: false);
+          });
+        }
+      });
       
       // Pre-fill form if editing
       if (widget.transaction != null) {
@@ -649,29 +674,38 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
           const SizedBox(height: 16),
           
           // Scan Receipt button
-          OutlinedButton(
-            onPressed: () {
-              // TODO: Implement receipt scanning
-            },
-            style: OutlinedButton.styleFrom(
-              minimumSize: const Size(double.infinity, 50),
-              side: BorderSide(color: Colors.grey.shade300),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+          if (viewModel.isScanning)
+            const Center(
+              child: Column(
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 8),
+                  Text('Scanning receipt...', style: TextStyle(color: Colors.grey)),
+                ],
+              ),
+            )
+          else
+            OutlinedButton(
+              onPressed: () => _showScanOptions(context, viewModel),
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size(double.infinity, 50),
+                side: BorderSide(color: Colors.grey.shade300),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.qr_code_scanner, color: Colors.grey.shade700),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Scan Receipt',
+                    style: TextStyle(color: Colors.grey.shade700),
+                  ),
+                ],
               ),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.qr_code_scanner, color: Colors.grey.shade700),
-                const SizedBox(width: 8),
-                Text(
-                  'Scan Receipt',
-                  style: TextStyle(color: Colors.grey.shade700),
-                ),
-              ],
-            ),
-          ),
           
           const SizedBox(height: 8),
           Text(
@@ -1282,5 +1316,90 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       default:
         return false;
     }
+  }
+
+  void _showScanOptions(BuildContext context, AddTransactionViewModel viewModel) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(20),
+            topRight: Radius.circular(20),
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              margin: const EdgeInsets.only(top: 12),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: const Text(
+                'Scan Receipt',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.camera_alt, color: AppColors.primary),
+              title: const Text('Take a Picture'),
+              onTap: () {
+                Navigator.pop(context);
+                viewModel.scanReceipt(ImageSource.camera);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library, color: AppColors.primary),
+              title: const Text('Select from Gallery'),
+              onTap: () {
+                Navigator.pop(context);
+                viewModel.scanReceipt(ImageSource.gallery);
+              },
+            ),
+            const SizedBox(height: 24),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showScanFeedback(AddTransactionViewModel viewModel, {required bool isError}) {
+    final message = isError 
+        ? viewModel.lastScanError ?? 'Scan failed'
+        : 'Low confidence scan (${(viewModel.lastScanConfidence! * 100).toStringAsFixed(0)}%). Please verify and fill missing fields.';
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(
+              isError ? Icons.error_outline : Icons.warning_amber,
+              color: Colors.white,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(message),
+            ),
+          ],
+        ),
+        backgroundColor: isError ? Colors.red.shade700 : Colors.orange.shade700,
+        duration: const Duration(seconds: 4),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+    
+    viewModel.clearScanFeedback();
   }
 }

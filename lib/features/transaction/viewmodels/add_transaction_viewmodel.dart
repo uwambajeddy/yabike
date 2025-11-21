@@ -5,6 +5,9 @@ import '../../../data/models/category_model.dart';
 import '../../../data/repositories/transaction_repository.dart';
 import '../../../data/repositories/wallet_repository.dart';
 import '../../../data/services/category_service.dart';
+import '../../../data/services/security_service.dart';
+import '../../../core/services/receipt_scanner_service.dart';
+import 'package:image_picker/image_picker.dart';
 
 enum TransactionType { expense, income }
 
@@ -219,5 +222,80 @@ class AddTransactionViewModel extends ChangeNotifier {
     _note = null;
     _receiptPath = null;
     notifyListeners();
+  }
+
+  // Receipt Scanning
+  final ReceiptScannerService _receiptScanner = ReceiptScannerService();
+  final SecurityService _securityService = SecurityService();
+  bool _isScanning = false;
+  bool get isScanning => _isScanning;
+
+  Future<void> scanReceipt(ImageSource source) async {
+    _setScanning(true);
+    _securityService.pauseSecurity();
+    try {
+      final data = source == ImageSource.camera 
+          ? await _receiptScanner.scanReceiptFromCamera()
+          : await _receiptScanner.scanReceiptFromGallery();
+      
+      if (data != null) {
+        // Apply data directly to form
+        _applyReceiptData(data);
+        
+        // Store confidence and error for UI feedback
+        _lastScanConfidence = data.confidence;
+        _lastScanError = data.errorMessage;
+        notifyListeners();
+      }
+    } finally {
+      _securityService.resumeSecurity();
+      _setScanning(false);
+    }
+  }
+
+  double? _lastScanConfidence;
+  String? _lastScanError;
+  
+  double? get lastScanConfidence => _lastScanConfidence;
+  String? get lastScanError => _lastScanError;
+  
+  void clearScanFeedback() {
+    _lastScanConfidence = null;
+    _lastScanError = null;
+    notifyListeners();
+  }
+
+  void _setScanning(bool value) {
+    _isScanning = value;
+    notifyListeners();
+  }
+
+  void _applyReceiptData(ReceiptData data) {
+    debugPrint('Applying receipt data: $data');
+    if (data.amount != null) {
+      _amount = data.amount!;
+      debugPrint('Set amount: $_amount');
+    }
+    if (data.date != null) {
+      _date = data.date!;
+      debugPrint('Set date: $_date');
+    }
+    if (data.merchantName != null) {
+      _description = data.merchantName!;
+      debugPrint('Set description: $_description');
+    }
+    // Auto-select expense if not set
+    if (_type == null) {
+      _type = TransactionType.expense;
+      debugPrint('Auto-selected expense type');
+    }
+    notifyListeners();
+    debugPrint('Receipt data applied successfully');
+  }
+
+  @override
+  void dispose() {
+    _receiptScanner.dispose();
+    super.dispose();
   }
 }

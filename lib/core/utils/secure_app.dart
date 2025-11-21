@@ -39,7 +39,7 @@ class _SecureAppState extends State<SecureApp> with WidgetsBindingObserver {
     
     // Lock app when it goes to background
     if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
-      if (_securityService.isSecurityEnabled()) {
+      if (_securityService.isSecurityEnabled() && !_securityService.isSecurityPaused) {
         setState(() {
           _isLocked = true;
         });
