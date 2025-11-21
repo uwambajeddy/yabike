@@ -23,6 +23,7 @@ class AddTransactionViewModel extends ChangeNotifier {
   String _description = '';
   DateTime _date = DateTime.now();
   Wallet? _selectedWallet;
+  String _currency = 'RWF'; // Default to RWF
   String? _note;
   String? _receiptPath;
   Transaction? _editingTransaction;
@@ -40,6 +41,7 @@ class AddTransactionViewModel extends ChangeNotifier {
   String get description => _description;
   DateTime get date => _date;
   Wallet? get selectedWallet => _selectedWallet;
+  String get currency => _currency;
   String? get note => _note;
   String? get receiptPath => _receiptPath;
   List<Wallet> get wallets => _wallets;
@@ -126,6 +128,12 @@ class AddTransactionViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Set currency
+  void setCurrency(String currency) {
+    _currency = currency;
+    notifyListeners();
+  }
+
   /// Set note
   void setNote(String? value) {
     _note = value;
@@ -160,7 +168,7 @@ class AddTransactionViewModel extends ChangeNotifier {
           type: _type == TransactionType.income ? 'credit' : 'debit',
           category: _selectedCategory!.name,
           amount: _amount,
-          currency: _selectedWallet!.currency,
+          currency: _currency,
           description: _description,
           walletId: _selectedWallet!.id,
           rawMessage: _note ?? '',
@@ -185,8 +193,8 @@ class AddTransactionViewModel extends ChangeNotifier {
           type: _type == TransactionType.income ? 'credit' : 'debit',
           category: _selectedCategory!.name,
           amount: _amount,
-          currency: _selectedWallet!.currency,
-          amountRWF: _selectedWallet!.currency == 'RWF'
+          currency: _currency,
+          amountRWF: _currency == 'RWF'
               ? _amount
               : _amount * 1440, // Convert USD to RWF
           description: _description,

@@ -36,7 +36,11 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       viewModel.addListener(() {
         // Update amount controller if amount changed
         if (viewModel.amount > 0 && _amountController.text != viewModel.amount.toString()) {
-          _amountController.text = viewModel.amount.toString();
+          // Format amount to avoid unnecessary decimals
+          final amountStr = viewModel.amount % 1 == 0 
+              ? viewModel.amount.toInt().toString() 
+              : viewModel.amount.toString();
+          _amountController.text = amountStr;
         }
         // Update description controller if description changed
         if (viewModel.description.isNotEmpty && _transactionNameController.text != viewModel.description) {
@@ -640,12 +644,37 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               ),
               const SizedBox(width: 12),
               
+              // Currency selector
+              Container(
+                height: 56,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey.shade300),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: viewModel.currency,
+                    items: const [
+                      DropdownMenuItem(value: 'RWF', child: Text('RWF')),
+                      DropdownMenuItem(value: 'USD', child: Text('USD')),
+                    ],
+                    onChanged: (value) {
+                      if (value != null) {
+                        viewModel.setCurrency(value);
+                      }
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              
               // Amount input
               Expanded(
                 child: TextField(
                   controller: _amountController,
                   decoration: InputDecoration(
-                    hintText: 'Enter new amount',
+                    hintText: 'Enter amount',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: const BorderSide(color: AppColors.primary, width: 2),
@@ -659,7 +688,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                       borderSide: const BorderSide(color: AppColors.primary, width: 2),
                     ),
                   ),
-                  keyboardType: TextInputType.number,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   onChanged: (value) {
                     final amount = double.tryParse(value.replaceAll(',', '')) ?? 0;
                     viewModel.setAmount(amount);
