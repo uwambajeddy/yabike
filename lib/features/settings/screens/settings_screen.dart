@@ -1,11 +1,32 @@
 import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/routes/app_routes.dart';
+import '../../../data/services/notification_service.dart';
 import 'categories_screen.dart';
 import 'backup_screen.dart';
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  final NotificationService _notificationService = NotificationService();
+  int _unreadCount = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUnreadCount();
+  }
+
+  void _loadUnreadCount() {
+    setState(() {
+      _unreadCount = _notificationService.getUnreadCount();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -24,15 +45,12 @@ class SettingsScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Profile Section
-            _buildProfileSection(context),
-            const SizedBox(height: 24),
+            // _buildProfileSection(context),
+            // const SizedBox(height: 24),
             
             // Settings Menu
             _buildSettingsMenu(context),
-            const SizedBox(height: 24),
             
-            // App Info Section
-            _buildAppInfoSection(context),
           ],
         ),
       ),
@@ -114,13 +132,21 @@ class SettingsScreen extends StatelessWidget {
           // TODO: Navigate to wallets management
         },
       ),
+      // _SettingsMenuItem(
+      //   icon: Icons.notifications,
+      //   title: 'Notification Inbox',
+      //   subtitle: 'View your notifications',
+      //   badge: _unreadCount,
+      //   onTap: () async {
+      //     await Navigator.pushNamed(context, AppRoutes.notificationInbox);
+      //     _loadUnreadCount(); // Refresh count after returning
+      //   },
+      // ),
       _SettingsMenuItem(
         icon: Icons.notifications,
-        title: 'Notifications',
-        subtitle: 'Configure notification settings',
-        onTap: () {
-          // TODO: Navigate to notifications settings
-        },
+        title: 'Notification',
+        subtitle: 'Manage notification preferences',
+        onTap: () => Navigator.pushNamed(context, AppRoutes.notifications),
       ),
       _SettingsMenuItem(
         icon: Icons.security,
@@ -130,20 +156,14 @@ class SettingsScreen extends StatelessWidget {
           // TODO: Navigate to security settings
         },
       ),
-      _SettingsMenuItem(
-        icon: Icons.palette,
-        title: 'Appearance',
-        subtitle: 'Theme and display settings',
-        onTap: () {
-          // TODO: Navigate to appearance settings
-        },
-      ),
-      _SettingsMenuItem(
-        icon: Icons.notifications_outlined,
-        title: 'Notifications',
-        subtitle: 'Manage notification preferences',
-        onTap: () => Navigator.pushNamed(context, AppRoutes.notifications),
-      ),
+      // _SettingsMenuItem(
+      //   icon: Icons.palette,
+      //   title: 'Appearance',
+      //   subtitle: 'Theme and display settings',
+      //   onTap: () {
+      //     // TODO: Navigate to appearance settings
+      //   },
+      // ),
       _SettingsMenuItem(
         icon: Icons.backup,
         title: 'Data Management',
@@ -171,13 +191,7 @@ class SettingsScreen extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Settings',
-          style: theme.textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 16),
+       
         ...menuItems.map((item) => _buildMenuItem(context, item)),
       ],
     );
@@ -225,11 +239,33 @@ class SettingsScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      item.title,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            item.title,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        if (item.badge != null && item.badge! > 0)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              item.badge.toString(),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                     const SizedBox(height: 2),
                     Text(
@@ -241,6 +277,7 @@ class SettingsScreen extends StatelessWidget {
                   ],
                 ),
               ),
+              const SizedBox(width: 8),
               Icon(
                 Icons.chevron_right,
                 color: AppColors.textSecondary,
@@ -249,34 +286,6 @@ class SettingsScreen extends StatelessWidget {
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildAppInfoSection(BuildContext context) {
-    final theme = Theme.of(context);
-    
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.backgroundSecondary,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.grayPrimary),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'App Information',
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 12),
-          _buildInfoRow('Version', '1.0.0'),
-          _buildInfoRow('Build', '2025.08.01'),
-          _buildInfoRow('Platform', 'Flutter'),
-        ],
       ),
     );
   }
@@ -331,12 +340,14 @@ class _SettingsMenuItem {
   final String title;
   final String subtitle;
   final VoidCallback onTap;
+  final int? badge;
 
   _SettingsMenuItem({
     required this.icon,
     required this.title,
     required this.subtitle,
     required this.onTap,
+    this.badge,
   });
 }
 
